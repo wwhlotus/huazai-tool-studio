@@ -3259,15 +3259,23 @@
   const HOME_DEFAULT_KEY = 'ets_homecfg_default_v3';
   function defaultHomeCfg() {
     const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2', instant: true };
+    // 站点出厂默认：优先读取 defaults.js 提供的 ETS_DEFAULTS.ets_homecfg（即「保存为站点默认」那套当前配置）
+    let src = base;
+    try {
+      const ev = (window.ETS_DEFAULTS && window.ETS_DEFAULTS.ets_homecfg)
+        ? JSON.parse(window.ETS_DEFAULTS.ets_homecfg) : null;
+      if (ev && typeof ev === 'object') src = Object.assign({}, base, ev);
+    } catch (e) {}
+    // 用户曾点「将当前设置设为默认值」写入的本地默认，覆盖出厂默认
     try {
       const v = JSON.parse(localStorage.getItem(HOME_DEFAULT_KEY));
       if (v && typeof v === 'object') {
-        const merged = Object.assign({}, base, v);
-        merged.dissolve = base.dissolve;   // 碎片消失方式始终以代码默认为准，避免旧固化值覆盖
+        const merged = Object.assign({}, src, v);
+        merged.dissolve = src.dissolve || base.dissolve;   // 碎片消失方式以默认来源为准
         return merged;
       }
     } catch (e) {}
-    return base;
+    return src;
   }
   function describeCfg(c) {
     if (!c) return '';
