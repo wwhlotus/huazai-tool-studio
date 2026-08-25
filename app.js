@@ -1060,6 +1060,10 @@
             <button data-mode="matrix">黑客帝国</button>
             <button data-mode="matrix2">至尊黑客帝国</button>
           </div>
+          <label class="checkbox" style="margin-top: var(--space-3);">
+            <input type="checkbox" id="hcInstant">
+            <span>关闭进入特效（点击按钮直接进入工作台）</span>
+          </label>
         </div>
       </div>
 
@@ -1099,6 +1103,7 @@
       $('#hcImgTip').textContent = isImg ? '已设置图片背景' : '未设置图片背景';
       $$('#hcSpeeds button').forEach(b => b.classList.toggle('active', (cfg.speed || 2) === parseFloat(b.dataset.mult)));
       $$('#hcDissolve button').forEach(b => b.classList.toggle('active', (cfg.dissolve || 'fall') === b.dataset.mode));
+      const hcInstant = $('#hcInstant'); if (hcInstant) hcInstant.checked = !!cfg.instant;
       const sc = (cfg.scale && cfg.scale > 0) ? cfg.scale : 1;
       $('#hcSize').value = sc;
       $('#hcSizeVal').textContent = sc.toFixed(1) + '×';
@@ -1224,6 +1229,11 @@
     $('#hcDissolve').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       cfg.dissolve = b.dataset.mode;
+      syncControls(); applyAndSave();
+    });
+    // 关闭进入特效开关：开启后点击进入按钮直接进工作台，跳过所有碎片/闪电/屏震特效
+    $('#hcInstant').addEventListener('change', e => {
+      cfg.instant = !!e.target.checked;
       syncControls(); applyAndSave();
     });
     // 宠物大小（拖动实时调整，不弹 toast）
@@ -2648,7 +2658,8 @@
         toast('PDF 解析库未加载，请联网后重试'); return;
       }
       try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         const prog = $('#prog'); prog.classList.add('show');
         $('#progBar').style.width = '10%'; $('#progTxt').textContent = '解析 PDF…';
 
@@ -3247,7 +3258,7 @@
   // 进入页配置（首页设置面板保存）读写；默认 = 云层地球夜景图 / Beerus idle / 慢一倍 2×
   const HOME_DEFAULT_KEY = 'ets_homecfg_default_v3';
   function defaultHomeCfg() {
-    const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2' };
+    const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2', instant: true };
     try {
       const v = JSON.parse(localStorage.getItem(HOME_DEFAULT_KEY));
       if (v && typeof v === 'object') {
@@ -3267,7 +3278,7 @@
     const sc = (c.scale && c.scale > 0) ? c.scale : 1;
     const DM = { fall: '全部向下掉落', blackhole: '黑洞扭曲', bullet: '子弹射击', matrix: '黑客帝国', matrix2: '至尊黑客帝国' };
     const ds = DM[(c.dissolve) || 'fall'] || '全部向下掉落';
-    return `背景:${bg} / 宠物:${pet} · ${act} / 速度:${sp}× / 大小:${sc.toFixed(1)}× / 碎片消失:${ds}`;
+    return `背景:${bg} / 宠物:${pet} · ${act} / 速度:${sp}× / 大小:${sc.toFixed(1)}× / 碎片消失:${ds} / 进入特效:${c.instant ? '关闭' : '开启'}`;
   }
   function loadHomeCfg() {
     try {
@@ -3882,6 +3893,14 @@
     }
 
     const enter = () => {
+      const cfg = loadHomeCfg();
+      // 关闭进入特效：直接隐藏进入页并进入工作台，跳过闪电/碎片/屏震等全部特效
+      if (cfg.instant) {
+        landing.hidden = true;
+        setTool('home');
+        if (isMobile()) closeSidebar();
+        return;
+      }
       if (btn) btn.disabled = true;
       impactFeedback('heavy');                       // 点击瞬间：屏震 + 移动端振动（+ 可选炸裂声）
       const onDone = () => {
@@ -3890,7 +3909,7 @@
         setTool('home');
         if (isMobile()) closeSidebar();
       };
-      const mode = (loadHomeCfg().dissolve) || 'fall';
+      const mode = (cfg.dissolve) || 'fall';
       // 三种方式都先走「闪电分割 → 碎片沿裂纹裂开 → 屏震」前奏，再接各自的消失特效
       triggerCrackShatter(btn, onDone, mode);
     };
