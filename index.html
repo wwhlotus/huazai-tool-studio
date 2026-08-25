@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2C3E50" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>华仔效率工坊 · EfficientTool Studio</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- 增强库：已本地化打包（vendor/），完全离线可用，无需联网 -->
+  <script src="vendor/xlsx.full.min.js" defer></script>
+  <script src="vendor/pdf.min.js" defer></script>
+</head>
+<body>
+  <!-- 全局背景层（调色盘功能使用） -->
+  <div class="bg-layer" id="bgLayer"></div>
+  <div class="app">
+    <!-- 左侧侧边导航栏（移动端为抽屉） -->
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <span class="logo-mark__layer logo-mark__layer--back">华</span>
+          <span class="logo-mark__layer logo-mark__layer--mid">华</span>
+          <span class="logo-mark__layer logo-mark__layer--front">华</span>
+        </div>
+        <div class="logo-text">
+          <strong>华仔效率工坊</strong>
+          <span>EfficientTool Studio</span>
+        </div>
+      </div>
+
+      <!-- 导航由 app.js 依据配置渲染 -->
+      <nav class="nav" id="nav"></nav>
+
+      <div class="sidebar-foot">
+        <button class="ghost-btn" id="homeBtn">
+          <span class="nav-ico" data-icon="home"></span> 返回工作台
+        </button>
+      </div>
+    </aside>
+
+    <!-- 右侧主工作区 -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger" id="menuBtn" aria-label="打开导航菜单" aria-expanded="false" aria-controls="nav">☰</button>
+          <div class="topbar-titles">
+            <h1 id="toolTitle">主工作台</h1>
+            <p id="toolDesc" class="tool-desc">一站式轻量化办公处理工具集</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="theme-btn" id="themeBtn" aria-label="切换深浅主题" title="切换深浅主题">🌙</button>
+          <button class="record-btn" id="recordBtn">
+            <span class="nav-ico" data-icon="clock"></span><span class="lbl">处理记录</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="content" id="content"><!-- 动态渲染 --></section>
+    </main>
+  </div>
+
+  <!-- 移动端底部 Tab 主导航（由 app.js 渲染） -->
+  <nav class="bottomtab" id="bottomtab" aria-label="主导航"></nav>
+
+  <!-- 常驻宠物层（网页桌宠，独立于页面内容，切换界面不消失） -->
+  <div class="pet-layer" id="petLayer" aria-live="polite"></div>
+
+  <!-- 移动端侧栏遮罩 -->
+  <div class="sidebar-backdrop" id="backdrop" hidden></div>
+
+  <!-- 处理记录弹窗 -->
+  <div class="modal-mask" id="recordModal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3>处理记录</h3>
+        <button class="icon-btn" id="closeRecord" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body" id="recordList"></div>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="clearRecord">清空记录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全局提示 -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- 动态进入页 -->
+  <div class="landing" id="landing">
+    <div class="landing-inner">
+      <div class="landing-pet" id="landingPet" aria-hidden="true"></div>
+      <div class="landing-feet">
+        <button class="btn-shine" id="enterBtn" type="button">Domain Expansion</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="defaults.js"></script>
+  <script src="pets_extra.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
