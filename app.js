@@ -2066,6 +2066,65 @@
       if (sEl) sEl.textContent = (on ? '陪伴中' : '点击选择') + (sc ? ' · ' + sc + '动作' : '');
     }
 
+    // 宠物状态懒加载：只在卡片进入视口时加载，限制并发避免主线程卡顿
+    const PET_LOAD_LIMIT = 4;
+    let _petLoadRunning = 0;
+    const _petLoadQueue = [];
+    const _petObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const card = entry.target;
+        const k = card.dataset.pet;
+        const p = allPets()[k];
+        _petObserver.unobserve(card);
+        const st = petStateMap(p);
+        if (st && Object.keys(st).length) {
+          updatePetCard(card, p, st);
+          return;
+        }
+        _petLoadQueue.push({ card, pet: p });
+        _runPetLoadQueue();
+      });
+    }, { rootMargin: '120px 0px' });
+
+    function updatePetCard(card, p, states) {
+      states = states || {};
+      const idle = states.idle || {};
+      const pv = card.querySelector('.pet-preview');
+      if (pv && (idle.sprite || idle.sheet)) {
+        if (idle._sheet) {
+          const info = p._sheet || { cols: 8, rows: PET_STATE_ORDER.length };
+          pv.style.backgroundImage = `url('${idle.sheet}')`;
+          pv.style.backgroundSize = `${info.cols * 96}px ${info.rows * 104}px`;
+          pv.style.backgroundPosition = `0px ${-idle.row * 104}px`;
+        } else if (idle.sprite) {
+          pv.style.backgroundImage = `url('${idle.sprite}')`;
+          pv.style.backgroundSize = `${(idle.frames || 6) * 96}px 104px`;
+        }
+        pv.classList.remove('pet-loading');
+      }
+      const on = getSelectedPets().includes(card.dataset.pet);
+      const stEl = card.querySelector('.pet-state');
+      if (stEl) stEl.textContent = (on ? '陪伴中' : '点击选择') + (Object.keys(states).length ? ' · ' + Object.keys(states).length + '动作' : '');
+    }
+
+    function _runPetLoadQueue() {
+      if (!_petLoadQueue.length || _petLoadRunning >= PET_LOAD_LIMIT) return;
+      const { card, pet } = _petLoadQueue.shift();
+      _petLoadRunning++;
+      ensurePetStates(pet).then(states => {
+        if (card.isConnected) updatePetCard(card, pet, states);
+      }).catch(() => {
+        if (card.isConnected) {
+          const pv = card.querySelector('.pet-preview');
+          if (pv) pv.classList.remove('pet-loading');
+        }
+      }).finally(() => {
+        _petLoadRunning--;
+        _runPetLoadQueue();
+      });
+    }
+
     // 渲染网格（仅重建 #petGrid，不刷新工具栏，避免输入框失焦）
     function renderGrid() {
       const pets = allPets();
@@ -2111,35 +2170,16 @@
         });
       });
 
-      // 逐只异步加载尚未切片的状态：切好一只就更新对应卡片，谁先完成谁先显示
-      keys.forEach(k => {
-        const p = pets[k];
-        if (petStateMap(p) && Object.keys(petStateMap(p)).length) return; // 已加载则跳过
-        ensurePetStates(p).then(states => {
-          states = states || {};
-          const card = grid.querySelector('.pet-card[data-pet="' + k + '"]');
-          if (!card) return;
-          const idle = states.idle || {};
-          const pv = card.querySelector('.pet-preview');
-          if (pv) {
-            if (idle._sheet) {
-              const info = p._sheet || { cols: 8, rows: PET_STATE_ORDER.length };
-              pv.style.backgroundImage = `url('${idle.sheet}')`;
-              pv.style.backgroundSize = `${info.cols * 96}px ${info.rows * 104}px`;
-              pv.style.backgroundPosition = `0px ${-idle.row * 104}px`;
-            } else if (idle.sprite) {
-              pv.style.backgroundImage = `url('${idle.sprite}')`;
-              pv.style.backgroundSize = `${(idle.frames || 6) * 96}px 104px`;
-            }
-            pv.classList.remove('pet-loading');
-          }
-          const on = getSelectedPets().includes(k);
-          const stEl = card.querySelector('.pet-state');
-          if (stEl) stEl.textContent = (on ? '陪伴中' : '点击选择') + (Object.keys(states).length ? ' · ' + Object.keys(states).length + '动作' : '');
-        }).catch(() => {
-          const card = grid.querySelector('.pet-card[data-pet="' + k + '"]');
-          if (card) { const pv = card.querySelector('.pet-preview'); if (pv) pv.classList.remove('pet-loading'); }
-        });
+      // 已缓存的宠物直接显示；未缓存的进入视口后再异步加载，避免首屏并发 68 张图
+      _petObserver.disconnect();
+      $$('.pet-card', grid).forEach(card => {
+        const p = pets[card.dataset.pet];
+        const st = petStateMap(p);
+        if (st && Object.keys(st).length) {
+          updatePetCard(card, p, st);
+        } else {
+          _petObserver.observe(card);
+        }
       });
     }
 
