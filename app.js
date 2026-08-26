@@ -1065,6 +1065,15 @@
             <span>关闭进入特效（点击按钮直接进入工作台）</span>
           </label>
         </div>
+
+        <div class="card">
+          <h2 class="card-h">进入按钮样式</h2>
+          <p class="pal-tip">切换进入页「领域展开」按钮的视觉样式（仅外观，不改变按钮文字）。</p>
+          <div class="hc-speeds" id="hcBtnStyle">
+            <button data-style="initial">初始</button>
+            <button data-style="redflash">红闪</button>
+          </div>
+        </div>
       </div>
 
       <div class="homecfg-right">
@@ -1104,6 +1113,7 @@
       $$('#hcSpeeds button').forEach(b => b.classList.toggle('active', (cfg.speed || 2) === parseFloat(b.dataset.mult)));
       $$('#hcDissolve button').forEach(b => b.classList.toggle('active', (cfg.dissolve || 'fall') === b.dataset.mode));
       const hcInstant = $('#hcInstant'); if (hcInstant) hcInstant.checked = !!cfg.instant;
+      $$('#hcBtnStyle button').forEach(b => b.classList.toggle('active', (cfg.btnStyle || 'initial') === b.dataset.style));
       const sc = (cfg.scale && cfg.scale > 0) ? cfg.scale : 1;
       $('#hcSize').value = sc;
       $('#hcSizeVal').textContent = sc.toFixed(1) + '×';
@@ -1140,6 +1150,7 @@
       if (landing && !landing.classList.contains('hide')) {
         applyBgToEl(landing, cfg.bg);
         paintLandingPet();
+        applyEnterBtnStyle(document.getElementById('enterBtn'), cfg);
       }
       toast('进入页设置已保存');
     }
@@ -1234,6 +1245,12 @@
     // 关闭进入特效开关：开启后点击进入按钮直接进工作台，跳过所有碎片/闪电/屏震特效
     $('#hcInstant').addEventListener('change', e => {
       cfg.instant = !!e.target.checked;
+      syncControls(); applyAndSave();
+    });
+    // 进入按钮样式切换（初始 / 红闪）：仅改外观，不改按钮文字
+    $('#hcBtnStyle').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      cfg.btnStyle = b.dataset.style;
       syncControls(); applyAndSave();
     });
     // 宠物大小（拖动实时调整，不弹 toast）
@@ -3298,7 +3315,7 @@
   // 进入页配置（首页设置面板保存）读写；默认 = 云层地球夜景图 / Beerus idle / 慢一倍 2×
   const HOME_DEFAULT_KEY = 'ets_homecfg_default_v3';
   function defaultHomeCfg() {
-    const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2', instant: true };
+    const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2', instant: true, btnStyle: 'initial' };
     // 站点出厂默认：优先读取 defaults.js 提供的 ETS_DEFAULTS.ets_homecfg（即「保存为站点默认」那套当前配置）
     let src = base;
     try {
@@ -3326,7 +3343,8 @@
     const sc = (c.scale && c.scale > 0) ? c.scale : 1;
     const DM = { fall: '全部向下掉落', blackhole: '黑洞扭曲', bullet: '子弹射击', matrix: '黑客帝国', matrix2: '至尊黑客帝国' };
     const ds = DM[(c.dissolve) || 'fall'] || '全部向下掉落';
-    return `背景:${bg} / 宠物:${pet} · ${act} / 速度:${sp}× / 大小:${sc.toFixed(1)}× / 碎片消失:${ds} / 进入特效:${c.instant ? '关闭' : '开启'}`;
+    const BS = { initial: '初始', redflash: '红闪' };
+    return `背景:${bg} / 宠物:${pet} · ${act} / 速度:${sp}× / 大小:${sc.toFixed(1)}× / 碎片消失:${ds} / 进入特效:${c.instant ? '关闭' : '开启'} / 按钮样式:${BS[(c.btnStyle) || 'initial'] || '初始'}`;
   }
   function loadHomeCfg() {
     try {
@@ -3388,6 +3406,14 @@
     }
   }
 
+  // 按配置将进入按钮切换为指定样式（仅外观，不改按钮文字）
+  function applyEnterBtnStyle(btn, cfg) {
+    if (!btn) return;
+    const style = (cfg && cfg.btnStyle) || 'initial';
+    btn.classList.toggle('btn-redflash', style === 'redflash');
+    if (style === 'redflash') btn.setAttribute('data-glitch', (btn.textContent || '').trim());
+  }
+
   // 展示配置中的宠物于进入页中央，脚下放置与工作台同款按钮【领域展开】
   async function initLanding() {
     const landing = $('#landing');
@@ -3419,6 +3445,7 @@
       // 三种方式都先走「闪电分割 → 碎片沿裂纹裂开 → 屏震」前奏，再接各自的消失特效
       triggerCrackShatter(btn, onDone, mode);
     };
+    applyEnterBtnStyle(btn, cfg);
     if (btn) btn.addEventListener('click', enter);
 
     await paintLandingPet();
