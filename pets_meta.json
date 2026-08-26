@@ -12,12 +12,6 @@
     "sheet": "pets/nezukocoder.webp"
   },
   {
-    "slug": "goku",
-    "name": "Goku",
-    "color": "#2bb6cf",
-    "sheet": "pets/goku.webp"
-  },
-  {
     "slug": "akie-qiuhui",
     "name": "akie_qiuhui",
     "color": "#f0a020",
@@ -210,12 +204,6 @@
     "sheet": "pets/beerus.webp"
   },
   {
-    "slug": "2399",
-    "name": "2399 神圣大天使",
-    "color": "#8e9f84",
-    "sheet": "pets/2399.webp"
-  },
-  {
     "slug": "castorice",
     "name": "Castorice（遐蝶）",
     "color": "#a38ba8",
@@ -270,12 +258,6 @@
     "sheet": "pets/hutao-2.webp"
   },
   {
-    "slug": "hanli-pet",
-    "name": "韩立宠物",
-    "color": "#47443a",
-    "sheet": "pets/hanli-pet.webp"
-  },
-  {
     "slug": "dimo-3",
     "name": "Dimo / 迪莫",
     "color": "#82a9d8",
@@ -324,12 +306,6 @@
     "sheet": "pets/aion.webp"
   },
   {
-    "slug": "ray",
-    "name": "Ray",
-    "color": "#c2a33e",
-    "sheet": "pets/ray.webp"
-  },
-  {
     "slug": "dongfang-tiexin",
     "name": "东方铁心",
     "color": "#b36d84",
@@ -376,11 +352,5 @@
     "name": "悟空TV",
     "color": "#D4A017",
     "sheet": "pets/wukong-tv.webp"
-  },
-  {
-    "slug": "lens-cat",
-    "name": "镜头喵",
-    "color": "#83765b",
-    "sheet": "pets/lens-cat.webp"
   }
 ]

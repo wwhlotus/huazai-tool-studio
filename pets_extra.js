@@ -1,8 +1,6 @@
-/* 自动生成：宠物素材清单（由 download_pets*.py 从 petdex 生成，请勿手改） */
 window.PETS_EXTRA = [
   { "slug": "lulu-capybara-2", "name": "噜噜", "color": "#e0556b", "sheet": "pets/lulu-capybara-2.webp" },
   { "slug": "nezukocoder", "name": "NezukoCoder", "color": "#3a6ff0", "sheet": "pets/nezukocoder.webp" },
-  { "slug": "goku", "name": "Goku", "color": "#2bb6cf", "sheet": "pets/goku.webp" },
   { "slug": "akie-qiuhui", "name": "akie_qiuhui", "color": "#f0a020", "sheet": "pets/akie-qiuhui.webp" },
   { "slug": "yinyue-2", "name": "银月", "color": "#6a5acd", "sheet": "pets/yinyue-2.webp" },
   { "slug": "erii-mingfei", "name": "Erii ", "color": "#2e8b57", "sheet": "pets/erii-mingfei.webp" },
@@ -35,7 +33,6 @@ window.PETS_EXTRA = [
   { "slug": "helpfulyier", "name": "helpfulYIER", "color": "#d2c8c6", "sheet": "pets/helpfulyier.webp" },
   { "slug": "conan", "name": "Conan", "color": "#594b49", "sheet": "pets/conan.webp" },
   { "slug": "beerus", "name": "Beerus", "color": "#534e76", "sheet": "pets/beerus.webp" },
-  { "slug": "2399", "name": "2399 神圣大天使", "color": "#8e9f84", "sheet": "pets/2399.webp" },
   { "slug": "castorice", "name": "Castorice（遐蝶）", "color": "#a38ba8", "sheet": "pets/castorice.webp" },
   { "slug": "nimbus", "name": "Nimbus", "color": "#96743d", "sheet": "pets/nimbus.webp" },
   { "slug": "bachongshengzi", "name": "八神虫子", "color": "#ca9198", "sheet": "pets/bachongshengzi.webp" },
@@ -45,7 +42,6 @@ window.PETS_EXTRA = [
   { "slug": "mambo-2", "name": "Mambo", "color": "#8b636a", "sheet": "pets/mambo-2.webp" },
   { "slug": "kuromi-3", "name": "Kuromi", "color": "#5d5362", "sheet": "pets/kuromi-3.webp" },
   { "slug": "hutao-2", "name": "胡桃", "color": "#64453f", "sheet": "pets/hutao-2.webp" },
-  { "slug": "hanli-pet", "name": "韩立宠物", "color": "#47443a", "sheet": "pets/hanli-pet.webp" },
   { "slug": "dimo-3", "name": "Dimo / 迪莫", "color": "#82a9d8", "sheet": "pets/dimo-3.webp" },
   { "slug": "furina-2", "name": "Furina", "color": "#8085a6", "sheet": "pets/furina-2.webp" },
   { "slug": "nika-luffy", "name": "五档尼卡路飞", "color": "#d2bdb8", "sheet": "pets/nika-luffy.png" },
@@ -54,7 +50,6 @@ window.PETS_EXTRA = [
   { "slug": "demon-wolf", "name": "Demon Wolf", "color": "#4c3b49", "sheet": "pets/demon-wolf.webp" },
   { "slug": "da-er-mao-dou", "name": "大耳帽兜", "color": "#d4c6cf", "sheet": "pets/da-er-mao-dou.webp" },
   { "slug": "aion", "name": "Aion", "color": "#b3aaa5", "sheet": "pets/aion.webp" },
-  { "slug": "ray", "name": "Ray", "color": "#c2a33e", "sheet": "pets/ray.webp" },
   { "slug": "dongfang-tiexin", "name": "东方铁心", "color": "#b36d84", "sheet": "pets/dongfang-tiexin.webp" },
   { "slug": "volt-wisp", "name": "雷伊/leiyi/Volt Wisp", "color": "#ceb646", "sheet": "pets/volt-wisp.webp" },
   { "slug": "rick-sanchez", "name": "Rick Sanchez", "color": "#838575", "sheet": "pets/rick-sanchez.webp" },
@@ -62,6 +57,5 @@ window.PETS_EXTRA = [
   { "slug": "rio-2", "name": "里奥Leo", "color": "#cebfa9", "sheet": "pets/rio-2.webp" },
   { "slug": "spiritblade-2-0-4", "name": "Spiritblade 2.0", "color": "#575650", "sheet": "pets/spiritblade-2-0-4.webp" },
   { "slug": "frostling", "name": "Frostling", "color": "#afaeac", "sheet": "pets/frostling.webp" },
-  { "slug": "wukong-tv", "name": "悟空TV", "color": "#D4A017", "sheet": "pets/wukong-tv.webp", "fps": 12 },
-  { "slug": "lens-cat", "name": "镜头喵", "color": "#83765b", "sheet": "pets/lens-cat.webp", "fps": 9 },
-];
+  { "slug": "wukong-tv", "name": "悟空TV", "color": "#D4A017", "sheet": "pets/wukong-tv.webp", "fps": 12 }]
+;
