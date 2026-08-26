@@ -3360,7 +3360,11 @@
     if (!mascot) return;
     stage.innerHTML = ''; // 清空可能残留的旧切片节点
     try {
-      await ensurePetStates(mascot);
+      // 超时保护：宠物切片最多等 8 秒，超时则走兜底显示名字，避免卡死首屏
+      await Promise.race([
+        ensurePetStates(mascot),
+        new Promise(r => setTimeout(r, 8000))
+      ]);
       ensurePetKeyframes();
       const action = (cfg.pet && cfg.pet.action) || 'idle';
       const sid = petStateMap(mascot)[action] ? action : 'idle'; // 该动作不可用则回退 idle
@@ -3392,6 +3396,31 @@
 
     const cfg = loadHomeCfg();
     applyBgToEl(landing, cfg.bg);  // 应用进入页背景（颜色 / 图片）
+
+    // 先绑定进入按钮点击事件，避免宠物切片(paintLandingPet)卡住时按钮无法点击
+    const enter = () => {
+      const ecfg = loadHomeCfg();
+      // 关闭进入特效：直接隐藏进入页并进入工作台，跳过闪电/碎片/屏震等全部特效
+      if (ecfg.instant) {
+        landing.hidden = true;
+        setTool('home');
+        if (isMobile()) closeSidebar();
+        return;
+      }
+      if (btn) btn.disabled = true;
+      impactFeedback('heavy');                       // 点击瞬间：屏震 + 移动端振动（+ 可选炸裂声）
+      const onDone = () => {
+        landing.classList.add('hide');
+        setTimeout(() => { landing.hidden = true; }, 520);
+        setTool('home');
+        if (isMobile()) closeSidebar();
+      };
+      const mode = (ecfg.dissolve) || 'fall';
+      // 三种方式都先走「闪电分割 → 碎片沿裂纹裂开 → 屏震」前奏，再接各自的消失特效
+      triggerCrackShatter(btn, onDone, mode);
+    };
+    if (btn) btn.addEventListener('click', enter);
+
     await paintLandingPet();
 
     // 领域展开：背景炸裂成不规则碎片并向下掉落出屏，结束后进入工作台首页
@@ -3940,28 +3969,6 @@
       } catch (e) {}
     }
 
-    const enter = () => {
-      const cfg = loadHomeCfg();
-      // 关闭进入特效：直接隐藏进入页并进入工作台，跳过闪电/碎片/屏震等全部特效
-      if (cfg.instant) {
-        landing.hidden = true;
-        setTool('home');
-        if (isMobile()) closeSidebar();
-        return;
-      }
-      if (btn) btn.disabled = true;
-      impactFeedback('heavy');                       // 点击瞬间：屏震 + 移动端振动（+ 可选炸裂声）
-      const onDone = () => {
-        landing.classList.add('hide');
-        setTimeout(() => { landing.hidden = true; }, 520);
-        setTool('home');
-        if (isMobile()) closeSidebar();
-      };
-      const mode = (cfg.dissolve) || 'fall';
-      // 三种方式都先走「闪电分割 → 碎片沿裂纹裂开 → 屏震」前奏，再接各自的消失特效
-      triggerCrackShatter(btn, onDone, mode);
-    };
-    if (btn) btn.addEventListener('click', enter);
     landing.hidden = false;
   }
 
