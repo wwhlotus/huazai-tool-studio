@@ -1046,7 +1046,11 @@ input[type="range"] {
 .landing {
   position: fixed; inset: 0; z-index: 200;
   display: flex; align-items: center; justify-content: center;
-  background: #000 url('landing-default-bg.jpg') center center / cover no-repeat;
+  background-color: var(--landing-color, #000);
+  background-image: var(--landing-image, url('landing-default-bg.jpg'));
+  background-size: var(--landing-mode, cover);
+  background-position: center center;
+  background-repeat: no-repeat;
   transition: opacity .5s ease, visibility .5s ease;
 }
 .landing.hide { opacity: 0; visibility: hidden; pointer-events: none; }

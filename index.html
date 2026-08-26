@@ -11,6 +11,23 @@
   <!-- 增强库：已本地化打包（vendor/），完全离线可用，无需联网 -->
   <script src="vendor/xlsx.full.min.js" defer></script>
   <script src="vendor/pdf.min.js" defer></script>
+  <script src="defaults.js"></script>
+  <script>
+  (function(){
+    try{
+      var bg=null, raw=localStorage.getItem('ets_homecfg');
+      if(raw){ var c=JSON.parse(raw); if(c&&c.bg) bg=c.bg; }
+      if(!bg){ var d=window.ETS_DEFAULTS&&window.ETS_DEFAULTS.ets_homecfg; if(d){ var ec=JSON.parse(d); if(ec&&ec.bg) bg=ec.bg; } }
+      if(bg){
+        if(bg.type==='image'){ document.documentElement.style.setProperty('--landing-image',"url('"+bg.value+"')"); document.documentElement.style.setProperty('--landing-color','transparent'); document.documentElement.style.setProperty('--landing-mode', bg.mode==='repeat'?'repeat':'cover'); return; }
+        if(bg.value){ document.documentElement.style.setProperty('--landing-color',bg.value); document.documentElement.style.setProperty('--landing-image','none'); return; }
+      }
+    }catch(e){}
+    document.documentElement.style.setProperty('--landing-image',"url('landing-default-bg.jpg')");
+    document.documentElement.style.setProperty('--landing-color','#000');
+    document.documentElement.style.setProperty('--landing-mode','cover');
+  })();
+  </script>
 </head>
 <body>
   <!-- 全局背景层（调色盘功能使用） -->
@@ -98,7 +115,6 @@
     </div>
   </div>
 
-  <script src="defaults.js"></script>
   <script src="pets_extra.js"></script>
   <script src="app.js"></script>
 </body>
