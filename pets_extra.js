@@ -6,7 +6,6 @@ window.PETS_EXTRA = [
   { "slug": "akie-qiuhui", "name": "akie_qiuhui", "color": "#f0a020", "sheet": "pets/akie-qiuhui.webp" },
   { "slug": "yinyue-2", "name": "银月", "color": "#6a5acd", "sheet": "pets/yinyue-2.webp" },
   { "slug": "erii-mingfei", "name": "Erii ", "color": "#2e8b57", "sheet": "pets/erii-mingfei.webp" },
-  { "slug": "kaitou-kid", "name": "怪盗基德", "color": "#d4573a", "sheet": "pets/kaitou-kid.webp" },
   { "slug": "daodun", "name": "DaoDun", "color": "#9b59b6", "sheet": "pets/daodun.webp" },
   { "slug": "yuexinmiao", "name": "月薪喵", "color": "#e67e22", "sheet": "pets/yuexinmiao.webp" },
   { "slug": "kawaii-bear-puppy", "name": "Kawaii Bear Puppy", "color": "#3498db", "sheet": "pets/kawaii-bear-puppy.webp" },

@@ -36,12 +36,6 @@
     "sheet": "pets/erii-mingfei.webp"
   },
   {
-    "slug": "kaitou-kid",
-    "name": "怪盗基德",
-    "color": "#d4573a",
-    "sheet": "pets/kaitou-kid.webp"
-  },
-  {
     "slug": "daodun",
     "name": "DaoDun",
     "color": "#9b59b6",
