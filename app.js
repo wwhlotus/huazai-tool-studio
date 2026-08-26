@@ -1072,6 +1072,7 @@
           <div class="hc-speeds" id="hcBtnStyle">
             <button data-style="initial">初始</button>
             <button data-style="redflash">红闪</button>
+            <button data-style="dynamic">动态</button>
           </div>
         </div>
       </div>
@@ -1247,7 +1248,7 @@
       cfg.instant = !!e.target.checked;
       syncControls(); applyAndSave();
     });
-    // 进入按钮样式切换（初始 / 红闪）：仅改外观，不改按钮文字
+    // 进入按钮样式切换（初始 / 红闪 / 动态）：仅改外观，不改按钮文字
     $('#hcBtnStyle').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       cfg.btnStyle = b.dataset.style;
@@ -3343,7 +3344,7 @@
     const sc = (c.scale && c.scale > 0) ? c.scale : 1;
     const DM = { fall: '全部向下掉落', blackhole: '黑洞扭曲', bullet: '子弹射击', matrix: '黑客帝国', matrix2: '至尊黑客帝国' };
     const ds = DM[(c.dissolve) || 'fall'] || '全部向下掉落';
-    const BS = { initial: '初始', redflash: '红闪' };
+    const BS = { initial: '初始', redflash: '红闪', dynamic: '动态' };
     return `背景:${bg} / 宠物:${pet} · ${act} / 速度:${sp}× / 大小:${sc.toFixed(1)}× / 碎片消失:${ds} / 进入特效:${c.instant ? '关闭' : '开启'} / 按钮样式:${BS[(c.btnStyle) || 'initial'] || '初始'}`;
   }
   function loadHomeCfg() {
@@ -3407,11 +3408,29 @@
   }
 
   // 按配置将进入按钮切换为指定样式（仅外观，不改按钮文字）
+  // initial：默认外观 / redflash：红闪故障风（::after 覆盖层）/ dynamic：星空轨道动效（需注入子元素）
   function applyEnterBtnStyle(btn, cfg) {
     if (!btn) return;
     const style = (cfg && cfg.btnStyle) || 'initial';
-    btn.classList.toggle('btn-redflash', style === 'redflash');
-    if (style === 'redflash') btn.setAttribute('data-glitch', (btn.textContent || '').trim());
+    if (!btn.dataset.label) btn.dataset.label = (btn.textContent || '').trim();
+    const label = btn.dataset.label || 'Domain Expansion';
+    btn.classList.remove('btn-redflash', 'btn-dynamic');
+    if (style === 'redflash') {
+      btn.textContent = label;
+      btn.setAttribute('data-glitch', label);
+      btn.classList.add('btn-redflash');
+    } else if (style === 'dynamic') {
+      btn.textContent = '';
+      const s = document.createElement('strong');
+      s.textContent = label;
+      btn.appendChild(s);
+      btn.insertAdjacentHTML('beforeend',
+        '<div id="container-stars"><div id="stars"></div></div>' +
+        '<div id="glow"><div class="circle-container"><div class="circle"></div><div class="circle"></div></div></div>');
+      btn.classList.add('btn-dynamic');
+    } else {
+      btn.textContent = label;
+    }
   }
 
   // 展示配置中的宠物于进入页中央，脚下放置与工作台同款按钮【领域展开】
