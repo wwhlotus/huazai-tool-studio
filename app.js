@@ -543,6 +543,7 @@
             <button class="btn-primary" id="idRandom">随机生成</button>
             <button class="ghost-btn" id="idRefreshNo">刷新号码</button>
             <button class="ghost-btn" id="idCopy">复制号码</button>
+            <button class="ghost-btn" id="idRefreshCopy">刷新并复制</button>
           </div>
           <p class="id-note">⚠️ 本工具仅用于设计演示、排版预览与开发测试。所生成号码非真实有效证件，仅供样例使用，<b>严禁</b>用于任何冒充、欺诈等违法用途。</p>
         </div>
@@ -673,6 +674,7 @@
     $('#idRandom').addEventListener('click', randomAll);
     $('#idRefreshNo').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); });
     $('#idCopy').addEventListener('click', () => { if (state.id) { copyText(state.id); toast('已复制证件号码'); } });
+    $('#idRefreshCopy').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); if (state.id) { copyText(state.id); toast('已刷新并复制证件号码'); } });
     $('#idDownload').addEventListener('click', download);
 
     // 初始默认值（年龄按当前电脑时间实时计算）
