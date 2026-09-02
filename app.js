@@ -3296,6 +3296,36 @@
     localStorage.removeItem(REC_KEY); renderRecords(); toast('记录已清空');
   });
 
+  /* ---------------- 神秘代码弹窗（点击左上角「华」） ---------------- */
+  const $secretModal = $('#secretModal');
+  const $secretInput = $('#secretInput');
+  const $secretErr = $('#secretErr');
+  const SECRET_CODE = '为人民服务';
+  function openSecret() {
+    $secretInput.value = '';
+    $secretErr.hidden = true;
+    $secretModal.hidden = false;
+    setTimeout(() => $secretInput.focus(), 60);
+  }
+  function closeSecret() { $secretModal.hidden = true; }
+  function submitSecret() {
+    const v = ($secretInput.value || '').trim();
+    if (v === SECRET_CODE) {
+      closeSecret();
+      window.location.href = '3d.html';
+    } else {
+      $secretErr.hidden = false;
+      $secretInput.select();
+    }
+  }
+  $('#logoBtn').addEventListener('click', openSecret);
+  $('#logoBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSecret(); } });
+  $('#closeSecret').addEventListener('click', closeSecret);
+  $('#secretCancel').addEventListener('click', closeSecret);
+  $secretModal.addEventListener('click', e => { if (e.target.id === 'secretModal') closeSecret(); });
+  $('#secretOk').addEventListener('click', submitSecret);
+  $secretInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitSecret(); });
+
   /* ---------------- 动态进入页 ---------------- */
   // 进入页配置（首页设置面板保存）读写；默认 = 云层地球夜景图 / Beerus idle / 慢一倍 2×
   const HOME_DEFAULT_KEY = 'ets_homecfg_default_v3';

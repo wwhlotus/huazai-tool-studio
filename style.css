@@ -761,6 +761,11 @@ input[type="range"] {
 .modal-body { padding: var(--space-4) var(--space-5); overflow-y: auto; }
 .modal-foot { padding: var(--space-3) var(--space-5); border-top: var(--bw) solid var(--line); display: flex; justify-content: flex-end; }
 .modal-foot .ghost-btn { width: auto; }
+.secret-modal { max-width: 360px; }
+.secret-tip { margin: 0 0 var(--space-3); color: var(--text-2); font-size: var(--fs-sm); }
+.secret-input { width: 100%; padding: var(--space-3) var(--space-4); border: var(--bw) solid var(--line); border-radius: var(--radius); background: var(--bg-1); color: var(--text-1); font-size: var(--fs-md); outline: none; transition: border-color .15s; }
+.secret-input:focus { border-color: var(--accent); }
+.secret-err { margin: var(--space-2) 0 0; color: #e74c3c; font-size: var(--fs-sm); font-weight: 600; }
 .record-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: var(--bw) dashed var(--line); }
 .record-item:last-child { border-bottom: none; }
 .record-item .ri-ico { flex: 0 0 auto; color: var(--primary-500); display: inline-flex; }

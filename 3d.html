@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>华仔的 3D 工作台 · 温馨小屋</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root { color-scheme: light; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1410; font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+    #scene3d { position: fixed; inset: 0; }
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; pointer-events: none;
+    }
+    #hud .title {
+      pointer-events: none;
+      color: #fff3e6; text-shadow: 0 2px 10px rgba(0,0,0,.5);
+      font-size: 18px; font-weight: 800; letter-spacing: .5px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #hud .title .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff9d5c; box-shadow: 0 0 12px #ff9d5c; }
+    #hud .back {
+      pointer-events: auto;
+      background: rgba(44,62,80,.85); color: #fff; border: 1px solid rgba(255,255,255,.25);
+      padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+      backdrop-filter: blur(6px);
+    }
+    #hud .back:hover { background: #2C3E50; }
+    #hint {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
+      color: #ffe9d6; font-size: 12px; background: rgba(0,0,0,.35); padding: 6px 14px; border-radius: 20px;
+      backdrop-filter: blur(4px); pointer-events: none;
+    }
+    /* 房间详情面板复用站点 .modal-mask/.modal */
+    #roomPanel .room-tag { display:inline-block; font-size:12px; font-weight:800; color:#fff; background:#ff7a59; padding:3px 10px; border-radius:20px; margin-bottom:10px; }
+    #roomPanel h2 { margin: 2px 0 6px; font-size: 20px; color: var(--text-1); }
+    #roomPanel .room-desc { margin: 0 0 14px; color: var(--text-2); font-size: 14px; line-height: 1.6; }
+    #roomPanel ul { margin: 0; padding-left: 18px; }
+    #roomPanel li { margin: 8px 0; line-height: 1.6; color: var(--text-1); font-size: 14px; }
+    #roomPanel li b { color: #2C3E50; }
+    #fallback { position: fixed; inset: 0; display:none; place-items:center; color:#fff; text-align:center; padding:24px; }
+    #fallback.show { display: grid; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="scene3d"></div>
+
+  <div id="hud">
+    <div class="title"><span class="dot"></span>华仔的 3D 工作台 · 温馨小屋</div>
+    <button class="back" id="backBtn">← 返回效率工坊</button>
+  </div>
+  <div id="hint">拖拽旋转视角 · 滚轮缩放 · 点击发光门牌进入房间</div>
+
+  <!-- 房间详情面板 -->
+  <div class="modal-mask" id="roomPanel" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="roomTitle">房间</h3>
+        <button class="icon-btn" id="closeRoom" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body" id="roomBody"></div>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="roomClose">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="fallback">
+    <div>
+      <h2>3D 场景加载失败</h2>
+      <p>当前环境无法加载 Three.js（需要联网访问 unpkg CDN）。<br/>请检查网络后刷新，或改用在线版（GitHub Pages）。</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ============== 房间数据（华仔效率工坊定制，可迭代） ============== */
+    const ROOMS = [
+      { id:'daily', name:'每日计划', icon:'📅', color:'#ff7a59',
+        desc:'华仔今天的效率清单，按优先级排好，开干即进入状态。',
+        items:[
+          '<b>闪电裂纹碎裂特效</b>优化（极简效率工房核心视觉）',
+          '番茄小说《素衣盏琉璃》章节精修（目标 200+ 章，2200–2800 字/章）',
+          '敬之理赔 · 骑手险 API 对接梳理（reportNo / partnerClaimNo）',
+          '桌面宠物扩展 66 → 67（办公 / 学生 / 自媒体三向）',
+          'ComfyUI 工作流迭代（Flux / Kontext / Wan2.x / Z-Image）'
+        ]},
+      { id:'idea', name:'选题灵感', icon:'💡', color:'#ffb454',
+        desc:'随手记下的工具与内容灵感，待孵化为下一波产出。',
+        items:[
+          '批量多媒体处理新工具（视频压缩 / 格式转换 / 去水印）',
+          '桌面宠物 × 剧情联动玩法（宠物随小说进度进化）',
+          '《素衣盏琉璃》长线谜题：灯盏来历（压到后段揭示）',
+          '效率工坊模板市场（一键套用工作流）',
+          '琉璃盏吞噬欲望的伦理张力设计（拒绝爽白升级流）'
+        ]},
+      { id:'progress', name:'内容进度', icon:'📊', color:'#5c9dff',
+        desc:'各条工作线的实时进度总览，一眼看清全局。',
+        items:[
+          '<b>小说《素衣盏琉璃》</b>：连载中，素衣不破 + 琉璃盏成长主线',
+          '<b>桌面宠物</b>：已沉淀 66 个，覆盖办公 / 学生 / 自媒体',
+          '<b>ComfyUI</b>：67 个工作流 + 2 个 API 提示词',
+          '<b>换肤</b>：wuthering-echo 主题已部署，便携 zip 待打包',
+          '<b>理赔平台</b>：骑手险操作手册编写中'
+        ]},
+      { id:'fitness', name:'健身计划', icon:'🏃', color:'#3ecf8e',
+        desc:'久坐党的自救清单，效率的前提是好身体。',
+        items:[
+          '每日拉伸 + 核心训练（15 分钟）',
+          '久坐提醒：每 50 分钟起身活动',
+          '每周跑步目标 3 次 / 累计 15 km',
+          '护眼：每 20 分钟远眺 20 秒',
+          '周末户外 walk，给脑子换频道'
+        ]},
+      { id:'review', name:'数据复盘', icon:'📈', color:'#a78bfa',
+        desc:'用数据回看产出质量与节奏，持续校准方向。',
+        items:[
+          '各工具使用频次热力图',
+          '五条工作线进度雷达（换肤 / 理赔 / 效率工房 / ComfyUI / 小说）',
+          '小说读者评论区反馈归纳（钩子有效性）',
+          '桌面宠物点击 / 互动 TOP10',
+          '每周产出 vs 计划达成率'
+        ]},
+      { id:'travel', name:'环游世界', icon:'🌍', color:'#2dd4bf',
+        desc:'工作间隙的灵感补给站，也是效率工坊的远方想象。',
+        items:[
+          '探索目标城市清单（工作间隙打卡）',
+          '效率工坊全球用户分布地图',
+          '各地素材采集（建筑 / 配色 / 字体灵感）',
+          '远程协作时区备忘录',
+          '「在路上」写作企划'
+        ]},
+      { id:'assets', name:'创作资产', icon:'🗂️', color:'#f472b6',
+        desc:'所有可复用的创作素材库，迭代的弹药库。',
+        items:[
+          '<b>66 桌面宠物素材库</b>（PNG / WebP / 切片配置）',
+          '<b>67 ComfyUI 工作流</b>（放大 / 人像 / 视频生成）',
+          '小说设定库：素衣人设 / 琉璃盏规则 / 长线谜题',
+          '一键换肤主题包（wuthering-echo 等）',
+          '效率工坊组件资产（图标 / 动效 / 模板）'
+        ]}
+    ];
+
+    /* ============== 场景搭建 ============== */
+    const container = document.getElementById('scene3d');
+    let renderer, scene, camera, controls;
+    const roomMeshes = [];
+
+    function makeLabelTexture(room) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 256;
+      const ctx = c.getContext('2d');
+      // 背景圆角卡
+      const r = 36;
+      ctx.fillStyle = room.color;
+      roundRect(ctx, 16, 16, 480, 224, r); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      roundRect(ctx, 16, 16, 480, 110, r); ctx.fill();
+      // 图标 + 名称
+      ctx.fillStyle = '#fff';
+      ctx.font = '120px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(room.icon, 96, 128);
+      ctx.font = 'bold 52px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(room.name, 180, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.anisotropy = 4;
+      return tex;
+    }
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+    }
+
+    function buildHuazai() {
+      const g = new THREE.Group();
+      // 身体（深蓝工装）
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.32, 0.7, 6, 16),
+        new THREE.MeshStandardMaterial({ color: 0x2C3E50, roughness: .8 })
+      );
+      body.position.y = 0.7; g.add(body);
+      // 头
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 24, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: .6 })
+      );
+      head.position.y = 1.45; g.add(head);
+      // 红发（呼应「红发魔女」主题，定制为华仔暖橙红）
+      const hair = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.33, 1),
+        new THREE.MeshStandardMaterial({ color: 0xe0556b, roughness: .7, flatShading: true })
+      );
+      hair.position.y = 1.55; hair.scale.set(1, .8, 1); g.add(hair);
+      // 眼睛
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x222 });
+      [-0.11, 0.11].forEach(x => {
+        const e = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyeMat);
+        e.position.set(x, 1.46, 0.27); g.add(e);
+      });
+      g.position.set(1.6, 0, 1.2);
+      g.rotation.y = -0.6;
+      return g;
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1410);
+      scene.fog = new THREE.Fog(0x1a1410, 9, 22);
+
+      camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 100);
+      camera.position.set(0, 3.2, 8.5);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 1.4, 0);
+      controls.enableDamping = true;
+      controls.maxPolarAngle = Math.PI/2.05;
+      controls.minDistance = 4; controls.maxDistance = 14;
+
+      // 灯光：暖色温馨
+      scene.add(new THREE.AmbientLight(0xffe6cc, 0.55));
+      const warm = new THREE.PointLight(0xffb066, 1.4, 30);
+      warm.position.set(0, 4.5, 2); warm.castShadow = true;
+      scene.add(warm);
+      const fill = new THREE.PointLight(0x88aaff, 0.4, 30);
+      fill.position.set(-4, 3, -3); scene.add(fill);
+
+      // 地板（木色）
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(14, 14),
+        new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: .95 })
+      );
+      floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
+
+      // 地毯
+      const rug = new THREE.Mesh(
+        new THREE.CircleGeometry(3.2, 40),
+        new THREE.MeshStandardMaterial({ color: 0xc97b4a, roughness: 1 })
+      );
+      rug.rotation.x = -Math.PI/2; rug.position.y = 0.01; scene.add(rug);
+
+      // 墙（三面，留前开口）
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xe9d9c3, roughness: 1, side: THREE.DoubleSide });
+      const mkWall = (w,h,x,y,z,ry) => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), wallMat);
+        m.position.set(x,y,z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m);
+      };
+      mkWall(14,5, 0,2.5,-7, 0);
+      mkWall(14,5, -7,2.5,0, Math.PI/2);
+      mkWall(14,5, 7,2.5,0, -Math.PI/2);
+
+      // 斜屋顶
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(10.5, 4, 4, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0x6b4a32, roughness: 1, side: THREE.DoubleSide })
+      );
+      roof.position.y = 7; roof.rotation.y = Math.PI/4; scene.add(roof);
+
+      // 工作台
+      const desk = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.18, 1.1),
+        new THREE.MeshStandardMaterial({ color: 0x5a3c25, roughness: .8 })
+      );
+      desk.position.set(-1.5, 1, -3); desk.castShadow = true; scene.add(desk);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x3e2818 });
+      [[-2.3,-3.4],[-0.7,-3.4],[-2.3,-2.6],[-0.7,-2.6]].forEach(([x,z])=>{
+        const l = new THREE.Mesh(new THREE.BoxGeometry(0.16,1,0.16), legMat);
+        l.position.set(x,0.5,z); scene.add(l);
+      });
+      // 台灯
+      const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16,0.1,16), legMat);
+      lampBase.position.set(-1.5,1.1,-3); scene.add(lampBase);
+      const lampHead = new THREE.Mesh(
+        new THREE.ConeGeometry(0.28,0.4,16,1,true),
+        new THREE.MeshStandardMaterial({ color:0xffcf87, emissive:0xffae57, emissiveIntensity:.8 })
+      );
+      lampHead.position.set(-1.5,1.55,-3); scene.add(lampHead);
+
+      // 书架
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.4,3,2.2), new THREE.MeshStandardMaterial({color:0x4a3320, roughness:.9}));
+      shelf.position.set(6.4,1.5,-2); scene.add(shelf);
+
+      // 华仔
+      scene.add(buildHuazai());
+
+      // 7 个房间门牌（沿墙与空中排布）
+      const positions = [
+        [-5.5, 2.2, -6.6, 0], [0, 2.4, -6.6, 0], [5.5, 2.2, -6.6, 0],
+        [-6.6, 2.6, 0, Math.PI/2], [6.6, 2.6, 0, -Math.PI/2],
+        [-3.5, 3.6, -3.5, 0.8], [3.5, 3.6, -3.5, -0.8]
+      ];
+      ROOMS.forEach((room, i) => {
+        const tex = makeLabelTexture(room);
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.85), mat);
+        const [x,y,z,ry] = positions[i % positions.length];
+        m.position.set(x,y,z); m.rotation.y = ry;
+        m.userData.room = room;
+        scene.add(m); roomMeshes.push(m);
+        // 背光
+        const glow = new THREE.PointLight(new THREE.Color(room.color), 0.5, 4);
+        glow.position.set(x, y, z + (ry===0?0.4:0.4)); scene.add(glow);
+      });
+
+      addEventListener('resize', onResize);
+      renderer.domElement.addEventListener('pointerdown', onPick);
+      animate();
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    function onPick(e) {
+      const r = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - r.left)/r.width)*2 - 1;
+      mouse.y = -((e.clientY - r.top)/r.height)*2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hit = raycaster.intersectObjects(roomMeshes)[0];
+      if (hit) openRoom(hit.object.userData.room);
+    }
+    function onResize() {
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    }
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      // 门牌轻微浮动
+      const t = performance.now()*0.001;
+      roomMeshes.forEach((m,i)=>{ m.position.y += Math.sin(t*1.2 + i)*0.0008; });
+      renderer.render(scene, camera);
+    }
+
+    /* ============== 房间面板 ============== */
+    const $panel = document.getElementById('roomPanel');
+    const $title = document.getElementById('roomTitle');
+    const $body = document.getElementById('roomBody');
+    function openRoom(room) {
+      $title.textContent = room.icon + ' ' + room.name;
+      $body.innerHTML =
+        `<span class="room-tag" style="background:${room.color}">${room.name}</span>` +
+        `<p class="room-desc">${room.desc}</p>` +
+        `<ul>${room.items.map(it=>`<li>${it}</li>`).join('')}</ul>`;
+      $panel.hidden = false;
+    }
+    function closeRoom(){ $panel.hidden = true; }
+    document.getElementById('closeRoom').addEventListener('click', closeRoom);
+    document.getElementById('roomClose').addEventListener('click', closeRoom);
+    $panel.addEventListener('click', e => { if (e.target.id === 'roomPanel') closeRoom(); });
+    document.getElementById('backBtn').addEventListener('click', () => location.href = 'index.html');
+
+    try {
+      init();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('fallback').classList.add('show');
+    }
+  </script>
+</body>
+</html>
