@@ -3312,7 +3312,7 @@
     const v = ($secretInput.value || '').trim();
     if (v === SECRET_CODE) {
       closeSecret();
-      window.location.href = 'http://localhost:8088';
+      window.location.href = 'http://localhost:19710';
     } else {
       $secretErr.hidden = false;
       $secretInput.select();
