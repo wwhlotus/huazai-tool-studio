@@ -3312,7 +3312,7 @@
     const v = ($secretInput.value || '').trim();
     if (v === SECRET_CODE) {
       closeSecret();
-      window.location.href = 'http://localhost:19710';
+      window.location.href = 'https://wwhlotus.cn/cozy-replica/';
     } else {
       $secretErr.hidden = false;
       $secretInput.select();
