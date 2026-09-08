@@ -3300,7 +3300,10 @@
   const $secretModal = $('#secretModal');
   const $secretInput = $('#secretInput');
   const $secretErr = $('#secretErr');
-  const SECRET_CODE = '为人民服务';
+  const SECRET_CODES = {
+    '为人民服务': 'https://wwhlotus.cn/cozy-replica/',
+    '芮城人会飞': '河南自驾游攻略_国庆3天_老君山万岁山线.html'
+  };
   function openSecret() {
     $secretInput.value = '';
     $secretErr.hidden = true;
@@ -3310,9 +3313,9 @@
   function closeSecret() { $secretModal.hidden = true; }
   function submitSecret() {
     const v = ($secretInput.value || '').trim();
-    if (v === SECRET_CODE) {
+    if (SECRET_CODES[v]) {
       closeSecret();
-      window.location.href = 'https://wwhlotus.cn/cozy-replica/';
+      window.location.href = SECRET_CODES[v];
     } else {
       $secretErr.hidden = false;
       $secretInput.select();
