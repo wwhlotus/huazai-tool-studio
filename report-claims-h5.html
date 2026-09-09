@@ -150,8 +150,8 @@
       <input id="baseUrl" value="https://test-cloudadmin.jz-ins.com/jz-qishou">
       <div style="height:8px"></div>
       <div class="fbline"><label>代理前缀（解决 CORS）</label></div>
-      <input id="proxyUrl" value="https://wwhlotus.cn/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
-      <div class="hint">生产环境默认走 wwhlotus.cn 反代：https://wwhlotus.cn/jz-qishou。本地调试可用 http://127.0.0.1:3000/jz-qishou（需同时运行 proxy-server.js）。不填则直连真实域名，浏览器会报 Failed to fetch。</div>
+      <input id="proxyUrl" value="https://test-cloudadmin.jz-ins.com/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
+      <div class="hint">默认直连生产后端：https://test-cloudadmin.jz-ins.com/jz-qishou。若浏览器报 CORS 失败，可填本地代理 http://127.0.0.1:3000/jz-qishou（需运行 proxy-server.js）绕过跨域。</div>
       <div style="height:8px"></div>
       <div class="fbline">
         <label>请求 Body 发送方式</label>
