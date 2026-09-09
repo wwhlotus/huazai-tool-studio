@@ -501,7 +501,7 @@ renderApi('reportClaims');
 
 // ===== 调色盘 =====
 const THEMES={
-  default:{bg:'#d60000',card:'rgba(0,0,0,.35)',text:'#fff',sub:'#ffe082',line:'rgba(255,255,255,.22)',primary:'#ffd700'},
+  default:{bg:'#0f172a',card:'#1e293b',text:'#e2e8f0',sub:'#94a3b8',line:'#334155',primary:'#3b82f6'},
   dark:{bg:'#0f172a',card:'#1e293b',text:'#e2e8f0',sub:'#94a3b8',line:'#334155',primary:'#3b82f6'},
   green:{bg:'#eef6ef',card:'#ffffff',text:'#1f2a22',sub:'#6b7d70',line:'#d6e4d9',primary:'#1fab5a'},
   warm:{bg:'#fff6ee',card:'#ffffff',text:'#2a211a',sub:'#9a8a7d',line:'#f0e0d4',primary:'#f5872e'},
@@ -556,7 +556,7 @@ function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }c
     const s=loadBg();
     if(s&&s.url){ $('bgOverlay').style.backgroundImage=buildOverlay(s.url,bgMask); s.mask=bgMask; localStorage.setItem('riderBg', JSON.stringify(s)); }
   };
-  $('resetTheme').onclick=()=>{ applyVars(THEMES.default); saveTheme(THEMES.default); markActive('default'); syncPickers(THEMES.default); applyFlow('gold'); resetDefaultBg(); };
+  $('resetTheme').onclick=()=>{ applyVars(THEMES.default); saveTheme(THEMES.default); markActive('default'); syncPickers(THEMES.default); applyFlow('rainbow'); resetDefaultBg(); };
   // 流光颜色预设
   const fsw=$('flowSwatches');
   Object.keys(FLOW_PRESETS).forEach(name=>{
@@ -568,7 +568,7 @@ function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }c
     fsw.appendChild(d);
   });
   const savedFlow=loadFlow();
-  if(savedFlow && FLOW_PRESETS[savedFlow]){ applyFlow(savedFlow); } else { applyFlow('gold'); }
+  if(savedFlow && FLOW_PRESETS[savedFlow]){ applyFlow(savedFlow); } else { applyFlow('rainbow'); }
 })();
 
 // ===== 背景图片 =====
