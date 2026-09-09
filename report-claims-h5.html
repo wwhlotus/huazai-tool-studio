@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>骑手险接口调试</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --primary:#2f6bff; --primary-d:#1f4fd6;
+    --text:#1f2329; --sub:#8a8f99; --line:#e6e8eb; --ok:#1fab5a; --err:#e54545;
+    --code-bg:#0f172a; --code-fg:#e2e8f0;
+    --flow-stops:rgba(47,128,255,0) 0deg, #2f80ff 60deg, #7cc4ff 130deg, #2f80ff 200deg, rgba(47,128,255,0) 260deg, rgba(47,128,255,0) 360deg;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;scrollbar-width:thin;scrollbar-color:transparent transparent}
+  :hover{scrollbar-color:rgba(255,255,255,.4) transparent}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:transparent;border-radius:3px;transition:background .2s}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.6)}
+  ::-webkit-scrollbar-corner{background:transparent}
+  .tabs::-webkit-scrollbar{height:4px}
+  .bg-list::-webkit-scrollbar{width:5px}
+  .tabs:hover::-webkit-scrollbar-thumb,.bg-list:hover::-webkit-scrollbar-thumb,.out:hover::-webkit-scrollbar-thumb,body:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,.4)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.5}
+  .app{max-width:480px;margin:0 auto;padding:16px 14px 40px}
+  h1{font-size:18px;margin:4px 0 12px;font-weight:700}
+  .card{background:color-mix(in srgb,var(--card) 70%,transparent);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:12px;margin-bottom:12px}
+  label{display:block;font-size:12px;color:var(--sub);margin:0 0 6px;font-weight:600}
+  input,textarea,select{width:100%;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;background:color-mix(in srgb,var(--card) 75%,transparent);color:var(--text);outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--primary)}
+  textarea{min-height:90px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}
+  button{border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;color:#fff;background:var(--primary);cursor:pointer;transition:.15s}
+  button:active{transform:scale(.98)}
+  button.primary{background:var(--primary);width:100%;margin-top:4px}
+  button.primary:disabled{opacity:.6}
+  button.link{background:none;color:var(--primary);padding:4px 0;font-size:13px;font-weight:600}
+  .req{color:var(--err);margin-left:2px}
+  .hint{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.5}
+  .out{background:var(--code-bg);color:var(--code-fg);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto;margin-top:8px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-bottom:6px}
+  .copy-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:var(--text);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+  .copy-btn:active{transform:scale(.95)}
+  .tag.ok{background:rgba(31,171,90,.15);color:var(--ok)}
+  .tag.err{background:rgba(229,69,69,.15);color:var(--err)}
+.kv{font-size:12px;color:var(--sub);margin-top:4px}
+.kv b{color:var(--text);display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+  .sec-title{font-size:13px;font-weight:700;margin:2px 0 8px;display:flex;justify-content:space-between;align-items:center}
+  .hidden{display:none}
+  .chk{display:inline-flex;align-items:center;gap:4px;margin:4px 12px 4px 0;font-weight:400;color:var(--text);font-size:13px}
+  .chk input{width:auto;margin:0}
+  .fblock{margin-bottom:12px}
+  .fbline{display:flex;gap:8px;align-items:center}
+  .fbline label{margin:0;flex:1}
+  .fbline select{flex:1}
+  .tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .tabs button{flex:0 0 auto;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:var(--text);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;white-space:nowrap;position:relative;z-index:0;overflow:visible}
+  .tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary);backdrop-filter:none}
+  /* tab 悬停呼吸特效 + 蓝色流光圆环 */
+  @property --flow-angle{ syntax:'<angle>'; initial-value:0deg; inherits:false }
+  .tabs button:not(.active):hover{animation:breathe 3.2s ease-in-out infinite;will-change:transform,box-shadow}
+  .tabs button:not(.active)::before{
+    content:'';position:absolute;inset:0;border-radius:20px;padding:2px;z-index:-1;opacity:0;pointer-events:none;
+    background:conic-gradient(from var(--flow-angle), var(--flow-stops));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    transition:opacity .25s ease;
+  }
+  .tabs button:not(.active):hover::before{opacity:1;animation:flow 1.5s linear infinite;box-shadow:0 0 10px rgba(47,128,255,.6)}
+  @keyframes breathe{
+    0%,100%{transform:scale(1);box-shadow:0 0 0 rgba(255,255,255,0)}
+    50%{transform:scale(1.06);box-shadow:0 0 14px rgba(255,255,255,.55),0 0 4px var(--primary)}
+  }
+  @keyframes flow{ to{ --flow-angle:360deg } }
+  @media (prefers-reduced-motion:reduce){
+    .tabs button:not(.active):hover{animation:none}
+    .tabs button:not(.active):hover::before{animation:none}
+  }
+  /* 调色盘 */
+  .palette-btn{position:fixed;right:14px;bottom:18px;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.18), inset 0 0 0 1px rgba(255,255,255,.25);z-index:9000;border:none;cursor:pointer}
+  .palette-panel{position:fixed;right:14px;bottom:76px;width:236px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.22);z-index:9001;display:none}
+  .palette-panel.show{display:block}
+  .palette-panel h4{margin:0 0 10px;font-size:13px;color:var(--text)}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .swatch{height:40px;border-radius:9px;border:2px solid var(--line);cursor:pointer;position:relative;overflow:hidden}
+  .swatch.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary)}
+  .prow{display:flex;align-items:center;justify-content:space-between;margin:10px 0;font-size:12px;color:var(--sub)}
+  .prow span{font-weight:600}
+  .prow input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:6px;padding:0;background:none;cursor:pointer}
+  .prow input[type=range]{flex:1;margin-left:10px;accent-color:var(--primary);cursor:pointer}
+  .palette-panel .reset{margin-top:8px;background:var(--line);color:var(--text);width:100%}
+  /* 背景图片 */
+  .bg-overlay{position:fixed;inset:0;z-index:-1;background:var(--bg);transition:background .3s;pointer-events:none}
+  body.has-bg .bg-overlay{background-size:cover;background-position:center;background-attachment:fixed}
+  .bg-list{max-height:200px;overflow:auto;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+  .bg-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text)}
+  .bg-item:hover{background:var(--line)}
+  .bg-item.active{background:rgba(47,107,255,.12)}
+  .bg-thumb{width:32px;height:32px;border-radius:6px;border:1px solid var(--line);flex:0 0 auto;background-size:cover;background-position:center}
+  .bg-item input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div id="fatal" style="display:none;position:fixed;inset:0;background:#fff;color:#e54545;padding:20px;font-size:13px;white-space:pre-wrap;z-index:9999;overflow:auto"></div>
+<noscript style="display:block;padding:20px;color:#e54545">本页面需要开启 JavaScript 才能运行。</noscript>
+<div class="bg-overlay" id="bgOverlay"></div>
+<button class="palette-btn" id="paletteBtn" title="调色盘">🎨</button>
+<div class="palette-panel" id="palettePanel">
+  <h4>主题配色</h4>
+  <div class="swatches" id="swatches"></div>
+  <div class="prow"><span>主色调</span><input type="color" id="pickPrimary"></div>
+  <div class="prow"><span>背景遮罩</span><input type="range" id="pickMask" min="0" max="100" value="0"></div>
+  <h4 style="margin:12px 0 8px">流光颜色</h4>
+  <div class="swatches" id="flowSwatches"></div>
+  <button class="reset" id="resetTheme">重置默认</button>
+  <div class="bg-list" id="bgList">
+    <h4>背景图片</h4>
+    <div id="bgItems"></div>
+    <div class="bg-item" id="bgNative">
+      <div class="bg-thumb" style="background:var(--bg)"></div>
+      <span>原生界面</span>
+    </div>
+  </div>
+</div>
+<div class="app">
+  <h1>骑手险接口调试</h1>
+
+  <div class="tabs" id="tabs">
+    <button class="tab" data-api="insure">保单投保</button>
+    <button class="tab active" data-api="reportClaims">骑手报案</button>
+    <button class="tab" data-api="queryByTime">查询时间段</button>
+    <button class="tab" data-api="queryByNo">查询单个</button>
+    <button class="tab" data-api="material">补充材料</button>
+    <button class="tab" data-api="cancelClaims">取消理赔</button>
+    <button class="tab" data-api="queryClaimsSingle">案件信息单个</button>
+    <button class="tab" data-api="queryClaimsTime">案件信息时间段</button>
+  </div>
+
+  <div class="card">
+    <div id="primaryFields"></div>
+    <button class="primary" id="btnReport" style="margin-top:14px">一键调用</button>
+    <div class="hint">点击后自动拼接下方（含已展开的）所有字段，依次调用：加密 → 签名 → 目标接口。</div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">展开更多字段<span><button class="link" id="btnToggleFields">展开</button></span></div>
+    <div id="moreFields" class="hidden"></div>
+    <div id="envWrap" class="hidden">
+      <div style="height:8px"></div><div class="fbline"><label>Base URL</label></div>
+      <input id="baseUrl" value="https://test-cloudadmin.jz-ins.com/jz-qishou">
+      <div style="height:8px"></div>
+      <div class="fbline"><label>代理前缀（解决 CORS）</label></div>
+      <input id="proxyUrl" value="http://127.0.0.1:3000/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
+      <div class="hint">本地代理示例：http://127.0.0.1:3000/jz-qishou。需要同时运行 proxy-server.js。不填则直连真实域名，浏览器会报 Failed to fetch。</div>
+      <div style="height:8px"></div>
+      <div class="fbline">
+        <label>请求 Body 发送方式</label>
+        <select id="bodyMode">
+          <option value="raw">原始字符串（加密 data 直接当 body / text/plain）</option>
+          <option value="json">JSON 包裹（{data:...} / application/json）</option>
+        </select>
+      </div>
+      <div style="height:8px"></div>
+      <button class="link" id="btnPreview">预览生成的请求体</button>
+      <div id="previewBox" class="hidden"></div>
+    </div>
+    <div class="hint" id="envHint">展开后可修改全部非必填字段；Base URL / 代理前缀 / 发送方式在展开后可见。</div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-title">执行结果 <button class="link" id="btnClear">清空</button></div>
+    <div id="output"></div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('error', function(e){
+  var d=document.getElementById('fatal');
+  if(d){ d.style.display='block'; d.textContent='页面脚本错误：\n'+(e.message||'')+'\n'+(e.filename||'')+':'+(e.lineno||''); }
+});
+const $ = (id) => document.getElementById(id);
+
+// 各接口定义：每个接口都走同一套 加密 → 签名 → 带 sign+x-request-timestamp 调用
+// 字段 required:true 显示在上方主区；false 折叠在「展开更多字段」
+const APIS = {
+  insure: {
+    name:'保单投保', path:'/api/elm/insure',
+    fields:[
+      {key:'thirdProdCode', label:'保司产品编码 thirdProdCode', required:true, type:'select', path:['thirdProdCode'], options:['SNTSQSGZ001','SNTSQSGZ002','SNTSQSGZ003','SNTSQSTY001'], def:'SNTSQSGZ001', note:'SNTSQSGZ001=基础版（默认） / SNTSQSGZ002=进阶版 / SNTSQSGZ003=尊享版 / SNTSQSTY001=团意产品code'},
+      {key:'certName', label:'骑手姓名 certName', required:true, type:'text', def:'花朵', targets:[['bizContext','knight','certName'],['knightInfo','name']], note:'写入 bizContext.knight.certName 与 knightInfo.name'},
+      {key:'certNo', label:'骑手证件号 certNo', required:true, type:'text', def:'110101199705020502', targets:[['bizContext','knight','certNo'],['knightInfo','certNo']], note:'写入骑手证件号（bizContext.knight.certNo 与 knightInfo.certNo）'},
+      {key:'insureNo', label:'投保单号 insureNo', required:true, type:'text', path:['insureNo'], def:'260811600000000004779527', note:'保单投保单号'},
+      {key:'insureStartDate', label:'投保开始时间 insureStartDate', required:true, type:'number', path:['insureStartDate'], def:1786544572915, readBtn:'now', note:'毫秒时间戳，点「读取」取当前时间'},
+      {key:'insureEndDate', label:'投保结束时间 insureEndDate', required:true, type:'number', path:['insureEndDate'], def:1786630973576, readBtn:'now+1d', note:'毫秒时间戳，点「读取」取当前时间+1天'},
+      // 以下为展开字段：其余嵌套字段逐个输入框
+      {key:'agencyInfo_name', label:'agencyInfo.name 代理机构名称', required:false, type:'text', path:['agencyInfo','name'], def:'长沙潇湘壹驰科技有限公司'},
+      {key:'agencyInfo_id', label:'agencyInfo.id 代理机构ID', required:false, type:'text', path:['agencyInfo','id'], def:'20226041'},
+      {key:'agencyInfo_certType', label:'agencyInfo.certType 代理证件类型', required:false, type:'text', path:['agencyInfo','certType'], def:'5'},
+      {key:'agencyInfo_certNo', label:'agencyInfo.certNo 代理证件号', required:false, type:'text', path:['agencyInfo','certNo'], def:'91430100MA7FC5C171'},
+      {key:'agencyRegion_cityId', label:'agencyRegion.cityId 代理城市ID', required:false, type:'text', path:['agencyRegion','cityId'], def:'32'},
+      {key:'agencyRegion_provinceId', label:'agencyRegion.provinceId 代理省份ID', required:false, type:'text', path:['agencyRegion','provinceId'], def:'10016'},
+      {key:'applicant_name', label:'applicant.name 投保人名称', required:false, type:'text', path:['applicant','name'], def:'长沙潇湘壹驰科技有限公司'},
+      {key:'applicant_certNo', label:'applicant.certNo 投保人证件号', required:false, type:'text', path:['applicant','certNo'], def:'91430100MA7FC5C171'},
+      {key:'applicant_certType', label:'applicant.certType 投保人证件类型', required:false, type:'text', path:['applicant','certType'], def:'5'},
+      {key:'bizContext_agencyId', label:'bizContext.agencyId 业务代理ID', required:false, type:'text', path:['bizContext','agencyId'], def:'20226041'},
+      {key:'bizContext_knight_certType', label:'bizContext.knight.certType 骑手证件类型', required:false, type:'text', path:['bizContext','knight','certType'], def:'1'},
+      {key:'cityId', label:'cityId 城市ID', required:false, type:'text', path:['cityId'], def:'11'},
+      {key:'districtId', label:'districtId 区县ID', required:false, type:'text', path:['districtId'], def:'5342'},
+      {key:'insurant_name', label:'insurant.name 被保险人名称', required:false, type:'text', path:['insurant','name'], def:'长沙潇湘壹驰科技有限公司'},
+      {key:'insurant_certNo', label:'insurant.certNo 被保险人证件号', required:false, type:'text', path:['insurant','certNo'], def:'91430100MA7FC5C171'},
+      {key:'insurant_certType', label:'insurant.certType 被保险人证件类型', required:false, type:'text', path:['insurant','certType'], def:'5'},
+      {key:'knightInfo_id', label:'knightInfo.id 骑手ID', required:false, type:'text', path:['knightInfo','id'], def:'19210614538405'},
+      {key:'knightInfo_certType', label:'knightInfo.certType 骑手证件类型', required:false, type:'text', path:['knightInfo','certType'], def:'1'},
+      {key:'payPremium', label:'payPremium 保费', required:false, type:'text', path:['payPremium'], def:'573.67'},
+      {key:'provinceId', label:'provinceId 省份ID', required:false, type:'text', path:['provinceId'], def:'10009'},
+      {key:'rootAgencyInfo_name', label:'rootAgencyInfo.name 总部代理名称', required:false, type:'text', path:['rootAgencyInfo','name'], def:'长沙潇湘壹驰科技有限公司'},
+      {key:'rootAgencyInfo_id', label:'rootAgencyInfo.id 总部代理ID', required:false, type:'text', path:['rootAgencyInfo','id'], def:'20226041'},
+      {key:'rootAgencyInfo_certNo', label:'rootAgencyInfo.certNo 总部代理证件号', required:false, type:'text', path:['rootAgencyInfo','certNo'], def:'91430100MA7FC5C171'},
+      {key:'rootAgencyInfo_certType', label:'rootAgencyInfo.certType 总部代理证件类型', required:false, type:'text', path:['rootAgencyInfo','certType'], def:'5'},
+      {key:'testFlag', label:'testFlag 测试标记', required:false, type:'bool', path:['testFlag'], def:false}
+    ]
+  },
+  reportClaims: {
+    name:'骑手报案', path:'/api/elm/report-claims',
+    fields:[
+      {key:'partnerClaimNo', label:'合作报案号 partnerClaimNo', required:true, type:'text', def:'100089528'},
+      {key:'policyNo', label:'保单号 policyNo', required:true, type:'text', def:'62030238901662300000360002'},
+      {key:'insuranceType', label:'保险类型', required:true, type:'select', options:['CP','GZ','YW'], def:'GZ', note:'CP=超赔险 / GZ=雇主险 / YW=意外险'},
+      {key:'thirdProdCode', label:'保司的保险产品编码', required:true, type:'select', options:['SNTSQSGZ001','SNTSQSGZ002','SNTSQSGZ003','SNTSQSTY001'], def:'SNTSQSGZ001', note:'SNTSQSGZ001=基础版（默认） / SNTSQSGZ002=进阶版 / SNTSQSGZ003=尊享版 / SNTSQSTY001=团意产品code'},
+      {key:'reportExtendParams', label:'扩展字段 reportExtendParams', required:true, type:'json', def:{riderIdNo:"532524198111296474",riderPhone:"18221171146",riderName:"骑手王文华"}},
+      {key:'accidentCauseLevel1', label:'一级出险原因', required:false, type:'select', options:['TRAFFIC_ACCIDENT','VIOLENCE','OTHER_ACCIDENT','ACCIDENT_DAMAGE','OTHER_DISEASE'], def:'ACCIDENT_DAMAGE', note:'TRAFFIC_ACCIDENT=交通事故 / VIOLENCE=暴力 / OTHER_ACCIDENT=其他意外伤害 / ACCIDENT_DAMAGE=意外伤害事故 / OTHER_DISEASE=其他疾病'},
+      {key:'accidentCauseLevel2', label:'二级出险原因', required:false, type:'select', options:['DROP_ACCIDENT','OTHER_ACCIDENT','SUDDEN_DEATH'], def:'OTHER_ACCIDENT', note:'DROP_ACCIDENT=坠落摔倒 / OTHER_ACCIDENT=其他意外 / SUDDEN_DEATH=猝死，可留空'},
+      {key:'accidentDate', label:'出险时间', required:false, type:'number', def:1686033594000, note:'毫秒时间戳（每次点击一键调用会取当前时间 Date.now()）'},
+      {key:'accidentProvinceId', label:'出险地点省份ID', required:false, type:'text', def:'10009'},
+      {key:'accidentCityId', label:'出险地点城市ID', required:false, type:'text', def:'1'},
+      {key:'accidentDistrictId', label:'出险地区县ID', required:false, type:'text', def:'5253'},
+      {key:'accidentPlace', label:'出险地点之详细地址', required:false, type:'text', def:'近铁城市广场南座'},
+      {key:'accidentProcess', label:'出险经过', required:false, type:'text', def:'追尾了，不能送外卖了'},
+      {key:'reporterName', label:'报案人姓名', required:false, type:'text', def:'qingge'},
+      {key:'reporterTel', label:'报案人联系电话', required:false, type:'text', def:'19911112222'},
+      {key:'lossTypeList', label:'损失类型', required:false, type:'check', options:['INJURIES','THIRD_INJURIES','MATERIAL_LOSS'], def:['INJURIES','THIRD_INJURIES','MATERIAL_LOSS'], note:'INJURIES=人伤 / THIRD_INJURIES=三者人伤 / MATERIAL_LOSS=物损车损'},
+      {key:'claimInformationList', label:'理赔资料附件 claimInformationList', required:false, type:'json', def:[{fileName:"knight/pingan/cc7ce91a33504445b11d9ae17900c433.jpg",fileUrl:"http://fin-insure-job-altest-alta1-oss-1.oss-cn-shanghai.aliyuncs.com/knight/pingan/cc7ce91a33504445b11d9ae17900c433.jpg?Expires=1663486524&OSSAccessKeyId=LTAI4FpAqze1RjGsW6Eo5kCB&Signature=ToaoLb52Zm4Lb%2FKJoUorNizSseE%3D",fileType:5,fileId:"335051"}]},
+      {key:'trackingOrderList', label:'运单列表 trackingOrderList', required:false, type:'json', def:[{orderNo:"AID00001",trackingId:"YDH0001",acceptedAt:1786437823689,arriveShopAt:1786437823689,pickUpAt:1692962884000,arriveUserAt:1692962884000,fromAddress:"ssssss"}]}
+    ]
+  },
+  queryByTime: {
+    name:'查询时间段', path:'/api/elm/query-audit-status',
+    fields:[
+      {key:'startDate', label:'开始时间 startDate', required:true, type:'text', def:'2023-08-12 11:18:36', note:'格式 yyyy-MM-dd HH:mm:ss'},
+      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 16:18:36', note:'格式 yyyy-MM-dd HH:mm:ss'},
+      {key:'page', label:'页码 page', required:true, type:'number', def:1},
+      {key:'pageSize', label:'每页条数 pageSize', required:true, type:'number', def:1000}
+    ]
+  },
+  queryByNo: {
+    name:'查询单个', path:'/api/elm/query-audit-status',
+    fields:[
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'报案时保司返回给饿了么的单号；与理赔单号二选一填'},
+      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么系统的理赔单号；与报案号二选一填（留空则不传该字段）'}
+    ]
+  },
+  material: {
+    name:'补充材料', path:'/api/elm/material',
+    fields:[
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565'},
+      {key:'claimInformationList', label:'理赔资料附件 claimInformationList', required:true, type:'json', def:[{fileId:"ATT202608120001",fileName:"理赔材料_1.jpg",fileType:1,fileUrl:"https://fin-insure-job-altest-alta1-oss-1.oss-cn-shanghai.aliyuncs.com/knight/pingan/5156b8eade594fe7a883904fd1951cce.jpeg?Expires=1787368481&OSSAccessKeyId=LTAI4FpAqze1RjGsW6Eo5kCB&Signature=IAnspGfNxEXdawYZF4eAq5oilLw%3D"}]}
+    ]
+  },
+  cancelClaims: {
+    name:'取消理赔', path:'/api/elm/cancel-claims',
+    fields:[
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE0977462912180620241651412'}
+    ]
+  },
+  queryClaimsSingle: {
+    name:'案件信息单个', path:'/api/elm/query-claims',
+    fields:[
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'报案时保司返回给饿了么的单号；与理赔单号二选一填'},
+      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么系统的理赔单号；与报案号二选一填（留空则不传该字段）'}
+    ]
+  },
+  queryClaimsTime: {
+    name:'案件信息时间段', path:'/api/elm/query-claims',
+    fields:[
+      {key:'startDate', label:'开始时间 startDate', required:true, type:'text', def:'2026-08-12 00:00:00', note:'格式 yyyy-MM-dd HH:mm:ss，维度为最近更新时间；批量查询必填'},
+      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 23:59:59', note:'格式 yyyy-MM-dd HH:mm:ss，批量查询必填'},
+      {key:'page', label:'页码 page', required:true, type:'number', def:1, note:'从 1 开始；批量查询必填'},
+      {key:'pageSize', label:'每页条数 pageSize', required:true, type:'number', def:1000, note:'最大 1000 条；批量查询必填'}
+    ]
+  }
+};
+
+let currentApi = 'reportClaims';
+let bgMask = 0;
+
+function renderOneField(wrap, f){
+  const block=document.createElement('div'); block.className='fblock';
+  const lab=document.createElement('label');
+  lab.innerHTML = f.label + (f.required?'<span class="req">*</span>':'');
+  block.appendChild(lab);
+  let ctrl;
+  if(f.type==='select'){
+    ctrl=document.createElement('select'); ctrl.id='f_'+f.key;
+    if(!f.required){ const o=document.createElement('option'); o.value=''; o.textContent='（不填）'; ctrl.appendChild(o); }
+    f.options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt; o.textContent=opt; if(opt===f.def)o.selected=true; ctrl.appendChild(o); });
+  } else if(f.type==='check'){
+    ctrl=document.createElement('div');
+    f.options.forEach(opt=>{
+      const lbl=document.createElement('label'); lbl.className='chk';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.id='f_'+f.key+'_'+opt; cb.value=opt;
+      if(f.def.indexOf(opt)>=0)cb.checked=true;
+      const sp=document.createElement('span'); sp.textContent=opt;
+      lbl.appendChild(cb); lbl.appendChild(sp); ctrl.appendChild(lbl);
+    });
+  } else if(f.type==='json'){
+    ctrl=document.createElement('textarea'); ctrl.id='f_'+f.key; ctrl.value=JSON.stringify(f.def,null,2);
+  } else if(f.type==='bool'){
+    ctrl=document.createElement('select'); ctrl.id='f_'+f.key;
+    ['false','true'].forEach(opt=>{ const o=document.createElement('option'); o.value=opt; o.textContent=opt; if(String(f.def)===opt)o.selected=true; ctrl.appendChild(o); });
+  } else {
+    ctrl=document.createElement('input'); ctrl.id='f_'+f.key; ctrl.type=(f.type==='number'?'number':'text');
+    if(f.def!=='')ctrl.value=f.def;
+  }
+  if(f.readBtn && (f.type==='text'||f.type==='number')){
+    const row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;align-items:center';
+    row.appendChild(ctrl);
+    const rb=document.createElement('button'); rb.type='button'; rb.className='link'; rb.textContent='读取';
+    rb.style.cssText='white-space:nowrap;flex:0 0 auto';
+    rb.onclick=()=>{ ctrl.value=(f.readBtn==='now+1d')?(Date.now()+86400000):Date.now(); };
+    row.appendChild(rb);
+    block.appendChild(row);
+  } else {
+    block.appendChild(ctrl);
+  }
+  if(f.note){ const n=document.createElement('div'); n.className='hint'; n.textContent=f.note; block.appendChild(n); }
+  wrap.appendChild(block);
+}
+
+function renderApi(apiKey){
+  currentApi=apiKey;
+  const api=APIS[apiKey];
+  const p=$('primaryFields'), m=$('moreFields');
+  p.innerHTML=''; m.innerHTML='';
+  api.fields.forEach(f=> renderOneField(f.required?p:m, f) );
+}
+
+function deepSet(obj,k,v){
+  if(obj==null) return;
+  if(Array.isArray(obj)){ obj.forEach(it=>deepSet(it,k,v)); return; }
+  if(typeof obj==='object'){
+    if(Object.prototype.hasOwnProperty.call(obj,k)) obj[k]=v;
+    Object.values(obj).forEach(val=>deepSet(val,k,v));
+  }
+}
+function setByPath(obj, path, value){
+  let cur=obj;
+  for(let i=0;i<path.length-1;i++){
+    const k=path[i];
+    if(cur[k]==null || typeof cur[k]!=='object' || Array.isArray(cur[k])) cur[k]={};
+    cur=cur[k];
+  }
+  cur[path[path.length-1]]=value;
+}
+function buildBody(){
+  const body={};
+  const api=APIS[currentApi];
+  // 投保接口：各字段独立输入框，按 path 组装为嵌套对象（certName/certNo 写入多个目标路径）
+  if(currentApi==='insure'){
+    const base={};
+    api.fields.forEach(f=>{
+      const el=document.getElementById('f_'+f.key);
+      if(!el) return;
+      let v = (el.value!=null)? el.value.trim() : '';
+      if(f.type==='bool'){
+        v = (el.value==='true');
+      } else if(f.type==='number'){
+        if(v==='') return; v=Number(v);
+      } else if(f.type==='select'){
+        v = el.value;
+      } else {
+        if(v==='') return;
+      }
+      const targets = f.targets || (f.path ? [f.path] : [f.key]);
+      targets.forEach(p=> setByPath(base, p, v));
+    });
+    return base;
+  }
+  api.fields.forEach(f=>{
+    if(f.type==='check'){
+      const vals=f.options.filter(o=>{ const el=document.getElementById('f_'+f.key+'_'+o); return el&&el.checked; });
+      if(vals.length) body[f.key]=vals;
+    } else if(f.type==='json'){
+      const raw=document.getElementById('f_'+f.key).value.trim();
+      if(raw){ try{ body[f.key]=JSON.parse(raw); }catch(e){ throw new Error(f.label+' 不是合法 JSON：'+e.message); } }
+    } else {
+      const v=document.getElementById('f_'+f.key).value.trim();
+      if(v!=='') body[f.key] = (f.type==='number') ? Number(v) : v;
+    }
+  });
+  return body;
+}
+
+// tab 切换
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    renderApi(t.dataset.api);
+    $('moreFields').classList.add('hidden');
+    $('btnToggleFields').textContent='展开';
+    $('envWrap').classList.add('hidden');
+    $('envHint').classList.remove('hidden');
+  };
+});
+
+$('btnToggleFields').onclick = ()=>{
+  const w=$('moreFields'), e=$('envWrap'), h=$('envHint');
+  const hidden = w.classList.toggle('hidden');
+  e.classList.toggle('hidden', hidden);
+  $('btnToggleFields').textContent = hidden ? '展开' : '收起';
+  h.classList.toggle('hidden', !hidden);
+};
+$('btnPreview').onclick = ()=>{
+  const box=$('previewBox');
+  try{ box.textContent = JSON.stringify(buildBody(), null, 2); }
+  catch(e){ box.textContent = '生成失败：'+e.message; }
+  box.classList.toggle('hidden');
+};
+
+function getBase(){ return (($('proxyUrl').value||'').trim() || ($('baseUrl').value||'').trim()).replace(/\/+$/,''); }
+function showResult(){ $('resultCard').style.display='block'; }
+function log(html){ showResult(); $('output').insertAdjacentHTML('beforeend', html); }
+window._blockRaw={};
+let _blockId=0;
+function clearLog(){ $('output').innerHTML=''; window._blockRaw={}; _blockId=0; }
+function pick(obj, keys){ if(obj==null)return undefined; for(const k of keys){ if(obj[k]!==undefined&&obj[k]!==null&&obj[k]!=='')return obj[k]; } return undefined; }
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+function copyBlock(id){
+  const raw=window._blockRaw[id]; if(raw==null) return;
+  const done=()=>{
+    const btn=document.querySelector(`button[onclick="copyBlock('${id}')"]`);
+    if(btn){ const old=btn.textContent; btn.textContent='已复制'; setTimeout(()=>btn.textContent=old, 1200); }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(raw).then(done).catch(()=>{ fallbackCopy(raw); done(); });
+  } else { fallbackCopy(raw); done(); }
+}
+function renderBlock(title, status, json, extra){
+  const ok=status>=200&&status<300;
+  const raw = typeof json==='string'?json:JSON.stringify(json,null,2);
+  const id = 'blk_'+(_blockId++);
+  window._blockRaw[id]=raw;
+  log(`<div style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <span class="tag ${ok?'ok':'err'}">${title} · HTTP ${status}</span>
+      <button type="button" class="copy-btn" onclick="copyBlock('${id}')" title="复制返回 JSON">复制</button>
+    </div>
+    ${extra?`<div class="kv">${extra}</div>`:''}
+    <div class="out" id="${id}">${escapeHtml(raw)}</div>
+  </div>`);
+}
+async function postJSON(path, bodyObj, extraHeaders){
+  const res=await fetch(getBase()+path,{method:'POST',headers:Object.assign({'Content-Type':'application/json'},extraHeaders||{}),body:JSON.stringify(bodyObj)});
+  const text=await res.text(); let json; try{json=JSON.parse(text);}catch{json=text;} return {status:res.status,json,raw:text};
+}
+
+async function doReport(){
+  const btn=$('btnReport'); btn.disabled=true; btn.textContent='调用中…'; clearLog();
+  try{
+    const api=APIS[currentApi];
+    const body=buildBody();
+    const ts=Date.now();
+    log(`<div class="kv">接口：<b>${api.name}</b> · x-request-timestamp = <b>${ts}</b>（当前毫秒时间戳）</div>`);
+    const [enc,sg]=await Promise.all([postJSON('/api/elm/encrypt',body),postJSON('/api/elm/sign',body)]);
+    const encData=pick(enc.json,['data','encryptData','ciphertext','result']);
+    const sign=pick(sg.json,['data','sign','signature','result']);
+    renderBlock('① 加密',enc.status,enc.json, encData!=null?`提取 data：<b title="${escapeHtml(String(encData))}">${escapeHtml(String(encData))}</b>`:'未找到 data 字段');
+    renderBlock('② 签名',sg.status,sg.json, sign!=null?`提取 sign：<b title="${escapeHtml(String(sign))}">${escapeHtml(String(sign))}</b>`:'未找到签名字段');
+    if(encData==null) throw new Error('未获取到加密 data，无法调用');
+    if(sign==null) throw new Error('未获取到 sign，无法调用');
+    const mode=$('bodyMode').value;
+    const headers={'sign':String(sign),'x-request-timestamp':String(ts)};
+    let ctype,reqBody;
+    if(mode==='raw'){ ctype='text/plain'; reqBody=String(encData); } else { ctype='application/json'; reqBody=JSON.stringify({data:encData}); }
+    const res=await fetch(getBase()+api.path,{method:'POST',headers:Object.assign({'Content-Type':ctype},headers),body:reqBody});
+    const text=await res.text(); let json; try{json=JSON.parse(text);}catch{json=text;}
+    renderBlock('③ 调用 '+api.name,res.status,json,`Content-Type: <b>${ctype}</b> · path: <b>${api.path}</b>`);
+  }catch(e){
+    log(`<div class="out" style="color:#fca5a5">调用失败：${escapeHtml(e.message)}</div>`);
+  }finally{ btn.disabled=false; btn.textContent='一键调用'; }
+}
+$('btnReport').onclick=doReport;
+$('btnClear').onclick=clearLog;
+
+renderApi('reportClaims');
+
+// ===== 调色盘 =====
+const THEMES={
+  default:{bg:'#f5f6f8',card:'#ffffff',text:'#1f2329',sub:'#8a8f99',line:'#e6e8eb',primary:'#2f6bff'},
+  dark:{bg:'#0f172a',card:'#1e293b',text:'#e2e8f0',sub:'#94a3b8',line:'#334155',primary:'#3b82f6'},
+  green:{bg:'#eef6ef',card:'#ffffff',text:'#1f2a22',sub:'#6b7d70',line:'#d6e4d9',primary:'#1fab5a'},
+  warm:{bg:'#fff6ee',card:'#ffffff',text:'#2a211a',sub:'#9a8a7d',line:'#f0e0d4',primary:'#f5872e'},
+  purple:{bg:'#f5f0fb',card:'#ffffff',text:'#241a2e',sub:'#8a7d96',line:'#e7dbf0',primary:'#8b5cf6'},
+  pink:{bg:'#fdf0f5',card:'#ffffff',text:'#2e1a24',sub:'#9a7d88',line:'#f4d9e3',primary:'#ec4899'}
+};
+// tab 流光颜色预设（conic 渐变使用 var(--flow-angle) 实现旋转）
+const FLOW_PRESETS={
+  blue:{label:'蓝色',stops:'rgba(47,128,255,0) 0deg, #2f80ff 60deg, #7cc4ff 130deg, #2f80ff 200deg, rgba(47,128,255,0) 260deg, rgba(47,128,255,0) 360deg',preview:'linear-gradient(135deg,#2f80ff,#7cc4ff)'},
+  rainbow:{label:'彩虹色',stops:'#ff4d4f, #ffa940, #ffe066, #52c41a, #2f80ff, #9254de, #ff4d4f',preview:'conic-gradient(#ff4d4f,#ffa940,#ffe066,#52c41a,#2f80ff,#9254de,#ff4d4f)'},
+  yellow:{label:'黄色',stops:'rgba(255,214,0,0) 0deg, #ffd600 60deg, #fff59d 130deg, #ffd600 200deg, rgba(255,214,0,0) 260deg, rgba(255,214,0,0) 360deg',preview:'linear-gradient(135deg,#ffd600,#fff59d)'},
+  red:{label:'红色',stops:'rgba(255,77,79,0) 0deg, #ff4d4f 60deg, #ff9c9e 130deg, #ff4d4f 200deg, rgba(255,77,79,0) 260deg, rgba(255,77,79,0) 360deg',preview:'linear-gradient(135deg,#ff4d4f,#ff9c9e)'},
+  purple:{label:'紫色',stops:'rgba(146,84,222,0) 0deg, #9254de 60deg, #d3adf7 130deg, #9254de 200deg, rgba(146,84,222,0) 260deg, rgba(146,84,222,0) 360deg',preview:'linear-gradient(135deg,#9254de,#d3adf7)'}
+};
+const FLOW_KEY='riderFlow';
+function applyFlow(name){ const p=FLOW_PRESETS[name]; if(!p) return; document.documentElement.style.setProperty('--flow-stops', p.stops); try{ localStorage.setItem(FLOW_KEY, name); }catch(e){} markFlowActive(name); }
+function loadFlow(){ try{ return localStorage.getItem(FLOW_KEY); }catch(e){ return null; } }
+function markFlowActive(name){ document.querySelectorAll('#flowSwatches .swatch').forEach(s=> s.classList.toggle('active', s.dataset.name===name)); }
+const VARS=['bg','card','text','sub','line','primary'];
+function applyVars(v){ VARS.forEach(k=>{ if(v[k]) document.documentElement.style.setProperty('--'+k, v[k]); }); }
+function curVars(){ const v={}; VARS.forEach(k=> v[k]=getComputedStyle(document.documentElement).getPropertyValue('--'+k).trim()); return v; }
+function saveTheme(v){ try{ localStorage.setItem('riderTheme', JSON.stringify(v)); }catch(e){} }
+function loadTheme(){ try{ return JSON.parse(localStorage.getItem('riderTheme')); }catch(e){ return null; } }
+function markActive(name){ document.querySelectorAll('.swatch').forEach(s=> s.classList.toggle('active', s.dataset.name===name)); }
+function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }catch(e){} }
+(function initPalette(){
+  const sw=$('swatches');
+  Object.keys(THEMES).forEach(name=>{
+    const t=THEMES[name];
+    const d=document.createElement('div');
+    d.className='swatch'; d.dataset.name=name; d.title=name;
+    d.style.background='linear-gradient(135deg,'+t.bg+' 0%,'+t.primary+' 130%)';
+    d.onclick=()=>{ applyVars(t); saveTheme(t); markActive(name); syncPickers(t); };
+    sw.appendChild(d);
+  });
+  const saved=loadTheme();
+  if(saved){ applyVars(saved); } else { applyVars(THEMES.default); markActive('default'); }
+  syncPickers(curVars());
+  $('paletteBtn').onclick=()=> $('palettePanel').classList.toggle('show');
+  document.addEventListener('click', e=>{
+    if(e.target!==$('paletteBtn') && !$('paletteBtn').contains(e.target) && !$('palettePanel').contains(e.target))
+      $('palettePanel').classList.remove('show');
+  });
+  $('pickPrimary').oninput=e=>{ const v=curVars(); v.primary=e.target.value; applyVars(v); saveTheme(v); markActive(null); };
+  // 背景遮罩强度（0-100），实时调节背景图深色遮罩
+  bgMask = (function(){ const s=loadBg(); return (s&&s.mask!=null)? s.mask : 0; })();
+  $('pickMask').value = bgMask;
+  $('pickMask').oninput=e=>{
+    bgMask=Number(e.target.value);
+    const s=loadBg();
+    if(s&&s.url){ $('bgOverlay').style.backgroundImage=buildOverlay(s.url,bgMask); s.mask=bgMask; localStorage.setItem('riderBg', JSON.stringify(s)); }
+  };
+  $('resetTheme').onclick=()=>{ applyVars(THEMES.default); saveTheme(THEMES.default); markActive('default'); syncPickers(THEMES.default); applyFlow('blue'); };
+  // 流光颜色预设
+  const fsw=$('flowSwatches');
+  Object.keys(FLOW_PRESETS).forEach(name=>{
+    const p=FLOW_PRESETS[name];
+    const d=document.createElement('div');
+    d.className='swatch'; d.dataset.name=name; d.title=p.label;
+    d.style.background=p.preview;
+    d.onclick=()=> applyFlow(name);
+    fsw.appendChild(d);
+  });
+  const savedFlow=loadFlow();
+  if(savedFlow && FLOW_PRESETS[savedFlow]){ applyFlow(savedFlow); } else { applyFlow('blue'); }
+})();
+
+// ===== 背景图片 =====
+function loadBg(){ try{ return JSON.parse(localStorage.getItem('riderBg')); }catch(e){ return null; } }
+function buildOverlay(url, mask){
+  if(!url) return '';
+  const m = Number(mask)||0;
+  if(m<=0) return 'url('+url+')';
+  const a = (m/100).toFixed(3);
+  return 'linear-gradient(rgba(15,23,42,'+a+'),rgba(15,23,42,'+a+')),url('+url+')';
+}
+function applyBg(url,name){
+  if(!url){
+    document.body.classList.remove('has-bg');
+    $('bgOverlay').style.backgroundImage='';
+    localStorage.removeItem('riderBg');
+    markBgActive(null); return;
+  }
+  document.body.classList.add('has-bg');
+  $('bgOverlay').style.backgroundImage=buildOverlay(url,bgMask);
+  localStorage.setItem('riderBg', JSON.stringify({name,url,mask:bgMask}));
+  markBgActive(name||url);
+}
+function markBgActive(name){
+  document.querySelectorAll('.bg-item').forEach(it=> it.classList.toggle('active', it.dataset.name===name));
+}
+(function initBg(){
+  const wrap=$('bgItems');
+  // 动态加载本地文件夹图片（经代理 /bg-list、/bgimg 提供）
+  fetch(location.origin + '/bg-list').then(r=>r.json()).then(files=>{
+    files.forEach(fn=>{
+      const name=fn.replace(/\.[^.]+$/,'');
+      const url=location.origin + '/bgimg/' + encodeURIComponent(fn);
+      const d=document.createElement('div');
+      d.className='bg-item'; d.dataset.name=name;
+      const thumb=document.createElement('div');
+      thumb.className='bg-thumb';
+      thumb.style.backgroundImage='url('+JSON.stringify(url)+')';
+      const span=document.createElement('span');
+      span.textContent=name;
+      d.appendChild(thumb); d.appendChild(span);
+      d.onclick=()=> applyBg(url,name);
+      wrap.appendChild(d);
+    });
+    restoreBg();
+  }).catch(e=>{
+    const tip=document.createElement('div');
+    tip.className='bg-item'; tip.style.color='var(--sub)'; tip.style.cursor='default';
+    tip.textContent='（需通过本地代理打开才能加载背景图）';
+    wrap.appendChild(tip);
+  });
+  // 自定义图片
+  const custom=document.createElement('div');
+  custom.className='bg-item'; custom.dataset.name='__custom';
+  const cthumb=document.createElement('div');
+  cthumb.className='bg-thumb';
+  cthumb.style.background='linear-gradient(135deg,var(--primary),var(--sub))';
+  const cspan=document.createElement('span');
+  cspan.textContent='+ 自定义图片';
+  custom.appendChild(cthumb); custom.appendChild(cspan);
+  const file=document.createElement('input');
+  file.type='file'; file.accept='image/*';
+  file.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=> applyBg(ev.target.result,'__custom');
+    r.readAsDataURL(f);
+  };
+  custom.appendChild(file);
+  custom.onclick=()=> file.click();
+  wrap.appendChild(custom);
+  // 原生界面
+  $('bgNative').onclick=()=> applyBg(null,null);
+  // 恢复（列表加载完成后由上面调用；这里兜底）
+  if(!document.querySelector('#bgItems .bg-item')) restoreBg();
+  function restoreBg(){
+    try{
+      const saved=JSON.parse(localStorage.getItem('riderBg'));
+      if(saved && saved.url){ bgMask = (saved.mask!=null)? saved.mask : 0; applyBg(saved.url,saved.name); }
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>

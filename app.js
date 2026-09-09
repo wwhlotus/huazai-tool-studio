@@ -3302,7 +3302,8 @@
   const $secretErr = $('#secretErr');
   const SECRET_CODES = {
     '为人民服务': 'https://wwhlotus.cn/cozy-replica/',
-    '芮城人会飞': '河南自驾游攻略_国庆3天_老君山万岁山线.html'
+    '芮城人会飞': '河南自驾游攻略_国庆3天_老君山万岁山线.html',
+    '骑手': 'report-claims-h5.html'
   };
   function openSecret() {
     $secretInput.value = '';
