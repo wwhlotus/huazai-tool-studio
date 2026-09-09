@@ -150,8 +150,8 @@
       <input id="baseUrl" value="https://test-cloudadmin.jz-ins.com/jz-qishou">
       <div style="height:8px"></div>
       <div class="fbline"><label>代理前缀（解决 CORS）</label></div>
-      <input id="proxyUrl" value="https://test-cloudadmin.jz-ins.com/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
-      <div class="hint">默认直连生产后端：https://test-cloudadmin.jz-ins.com/jz-qishou。若浏览器报 CORS 失败，可填本地代理 http://127.0.0.1:3000/jz-qishou（需运行 proxy-server.js）绕过跨域。</div>
+      <input id="proxyUrl" value="https://wwhlotus.cn/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
+      <div class="hint">默认走同源反代 https://wwhlotus.cn/jz-qishou（需在 Cloudflare 部署 jz-qishou-proxy-worker.js 转发到后端，详见 CORS-解决说明.md）。未部署该反代前此地址不可用；本机调试可填 http://127.0.0.1:3000/jz-qishou（需运行 proxy-server.js）。</div>
       <div style="height:8px"></div>
       <div class="fbline">
         <label>请求 Body 发送方式</label>
