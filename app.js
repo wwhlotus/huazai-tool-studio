@@ -3334,7 +3334,7 @@
   // 进入页配置（首页设置面板保存）读写；默认 = 云层地球夜景图 / Beerus idle / 慢一倍 2×
   const HOME_DEFAULT_KEY = 'ets_homecfg_default_v3';
   function defaultHomeCfg() {
-    const base = { bg: { type: 'image', value: 'landing-default-bg.jpg', mode: 'cover' }, pet: { slug: 'beerus', action: 'idle' }, speed: 2, scale: 1, dissolve: 'matrix2', instant: true };
+    const base = { bg: { type: 'image', value: 'landing-default-bg.png', mode: 'cover' }, pet: null, speed: 2, scale: 1, dissolve: 'matrix2', instant: true };
     // 站点出厂默认：优先读取 defaults.js 提供的 ETS_DEFAULTS.ets_homecfg（即「保存为站点默认」那套当前配置）
     let src = base;
     try {
@@ -3356,8 +3356,8 @@
   function describeCfg(c) {
     if (!c) return '';
     const bg = (c.bg && c.bg.type === 'image') ? '图片背景' : (c.bg && c.bg.value ? c.bg.value : '薄荷色');
-    const pet = (c.pet && PETS[c.pet.slug]) ? PETS[c.pet.slug].name : (c.pet ? c.pet.slug : 'Beerus');
-    const act = (c.pet && c.pet.action) ? c.pet.action : 'Idle';
+    const pet = (c.pet && PETS[c.pet.slug]) ? PETS[c.pet.slug].name : (c.pet ? c.pet.slug : '无');
+    const act = (c.pet && c.pet.action) ? c.pet.action : '-';
     const sp = (c.speed && c.speed > 0) ? c.speed : 2;
     const sc = (c.scale && c.scale > 0) ? c.scale : 1;
     const DM = { fall: '全部向下掉落', blackhole: '黑洞扭曲', bullet: '子弹射击', matrix: '黑客帝国', matrix2: '至尊黑客帝国' };
@@ -3391,7 +3391,9 @@
     const stage = $('#landingPet');
     if (!stage) return;
     const cfg = loadHomeCfg();
-    const mascot = PETS[(cfg.pet && cfg.pet.slug)] || PETS['beerus']
+    // 开始页宠物显示：配置中无宠物（pet 为空）时不渲染任何宠物
+    if (!cfg.pet || !cfg.pet.slug) { stage.innerHTML = ''; return; }
+    const mascot = PETS[cfg.pet.slug]
       || (() => { const a = allPets(); return a[Object.keys(a)[0]]; })();
     if (!mascot) return;
     stage.innerHTML = ''; // 清空可能残留的旧切片节点

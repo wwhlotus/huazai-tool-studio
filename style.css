@@ -1059,7 +1059,7 @@ input[type="range"] {
   position: fixed; inset: 0; z-index: 200;
   display: flex; align-items: center; justify-content: center;
   background-color: var(--landing-color, #000);
-  background-image: var(--landing-image, url('landing-default-bg.jpg'));
+  background-image: var(--landing-image, url('landing-default-bg.png'));
   background-size: var(--landing-mode, cover);
   background-position: center center;
   background-repeat: no-repeat;
