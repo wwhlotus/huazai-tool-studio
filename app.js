@@ -2132,7 +2132,7 @@
       const pets = allPets();
       const keys = computeList();
       const selected = getSelectedPets();
-      grid.innerHTML = keys.map(k => {
+      grid.innerHTML = keys.map((k, i) => {
         const p = pets[k];
         const on = selected.includes(k);
         const st = petStateMap(p) || {};
@@ -2153,6 +2153,7 @@
         const bgStyle = bg ? ` style="background-image:url('${bg}');background-size:${bgSize};${bgPos ? `background-position:${bgPos};` : ''}"` : '';
         return `
         <button class="pet-card ${on ? 'pet-on' : ''}" data-pet="${k}" style="--pet:${p.color}">
+          <span class="pet-badge">${i + 1}</span>
           <span class="pet-preview${loading}"${bgStyle}></span>
           <span class="pet-name">${p.name}</span>
           <span class="pet-state">${stateText}</span>

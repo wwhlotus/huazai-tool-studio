@@ -1027,6 +1027,17 @@ input[type="range"] {
 }
 .pet-card.pet-on .pet-state { background: var(--pet); color: #fff; border-color: var(--pet); }
 .pet-actions { margin-top: var(--space-2); }
+/* 宠物卡片左上角红色实心三角角标（按当前排序序号 1/2/3…） */
+.pet-badge {
+  position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none;
+  width: 46px; height: 46px; box-sizing: border-box;
+  display: flex; align-items: flex-start; justify-content: flex-start;
+  padding: 4px 0 0 6px;
+  background: #E24B4A;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  color: #fff; font-size: 13px; font-weight: 800; line-height: 1;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25);
+}
 
 /* 宠物陪伴页：搜索 + 排序工具栏 */
 .pet-toolbar {
