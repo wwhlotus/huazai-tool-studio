@@ -1557,6 +1557,7 @@
     { name: 'iconfont', url: 'https://www.iconfont.cn', cat: '前端', desc: '阿里矢量图标库' },
     { name: '微信公众平台', url: 'https://mp.weixin.qq.com', cat: '运营', desc: '公众号内容管理后台' },
     { name: '支付宝开放平台', url: 'https://open.alipay.com', cat: '开发', desc: '支付宝开发者门户' },
+    { name: 'idea大全', url: 'https://javaxuexizhe.cn/article/datagrip-pojie-202625', cat: '开发', desc: 'JetBrains 系列 IDE 教程与技巧' },
   ];
   const AI_AVATAR_COLORS = ['#4E677E', '#E07A5F', '#81B29A', '#9B8CFF', '#F2B705', '#3D9BE9', '#E76F92', '#5FB49C'];
   function aiAvatarColor(name) {
