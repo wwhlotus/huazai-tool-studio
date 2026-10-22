@@ -1558,6 +1558,14 @@
     { name: '微信公众平台', url: 'https://mp.weixin.qq.com', cat: '运营', desc: '公众号内容管理后台' },
     { name: '支付宝开放平台', url: 'https://open.alipay.com', cat: '开发', desc: '支付宝开发者门户' },
     { name: 'idea大全', url: 'https://javaxuexizhe.cn/article/datagrip-pojie-202625', cat: '开发', desc: 'JetBrains 系列 IDE 教程与技巧' },
+    { name: 'backiee', url: 'https://backiee.com', cat: '设计', desc: '免费 4K~8K 超清壁纸平台' },
+    { name: '365 独立开发挑战', url: 'https://365-tools.cn', cat: '工具', desc: '每天一个实用在线小工具，已解锁 139 个' },
+    { name: '神人高校网', url: 'https://srgaoxiao.cn', cat: '社区', desc: '2991 所高校信息与学生评价查询' },
+    { name: 'Apple 哪版', url: 'https://naban.barrybarrywu.cn', cat: '工具', desc: 'iPhone/Watch/iPad 各地区版本对比' },
+    { name: 'wikiHow', url: 'https://zh.wikihow.com', cat: '社区', desc: '万事指南，9 万篇研究文章与图文教程' },
+    { name: 'TankWarWorld', url: 'https://tank.fqdeng.com', cat: '游戏', desc: '3D 方块风格联机坦克大战小游戏' },
+    { name: '路由器技术分享', url: 'https://www.acwifi.net', cat: '数码', desc: '路由器拆机评测与性能对比' },
+    { name: '地图海报生成', url: 'https://maptoposter.0v0.one', cat: '设计', desc: '把城市地图生成艺术海报' },
   ];
   const AI_AVATAR_COLORS = ['#4E677E', '#E07A5F', '#81B29A', '#9B8CFF', '#F2B705', '#3D9BE9', '#E76F92', '#5FB49C'];
   function aiAvatarColor(name) {
