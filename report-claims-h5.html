@@ -6,10 +6,10 @@
 <title>骑手险接口调试</title>
 <style>
   :root{
-    --bg:#d60000; --card:rgba(0,0,0,.35); --primary:#ffd700; --primary-d:#e6b800;
-    --text:#fff; --sub:#ffe082; --line:rgba(255,255,255,.22); --ok:#52c41a; --err:#ff9c9e;
-    --code-bg:rgba(15,0,0,.85); --code-fg:#ffe082;
-    --flow-stops:rgba(255,215,0,0) 0deg, #ffd700 60deg, #fff0a3 130deg, #ffd700 200deg, rgba(255,215,0,0) 260deg, rgba(255,215,0,0) 360deg;
+    --bg:#f5f6f8; --card:#fff; --primary:#2f6bff; --primary-d:#1f4fd6;
+    --text:#1f2329; --sub:#8a8f99; --line:#e6e8eb; --ok:#1fab5a; --err:#e54545;
+    --code-bg:#0f172a; --code-fg:#e2e8f0;
+    --flow-stops:rgba(47,128,255,0) 0deg, #2f80ff 60deg, #7cc4ff 130deg, #2f80ff 200deg, rgba(47,128,255,0) 260deg, rgba(47,128,255,0) 360deg;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;scrollbar-width:thin;scrollbar-color:transparent transparent}
   :hover{scrollbar-color:rgba(255,255,255,.4) transparent}
@@ -98,7 +98,6 @@
   .bg-thumb{width:32px;height:32px;border-radius:6px;border:1px solid var(--line);flex:0 0 auto;background-size:cover;background-position:center}
   .bg-item input[type=file]{display:none}
 </style>
-<script src="default-bg.js"></script>
 </head>
 <body>
 <div id="fatal" style="display:none;position:fixed;inset:0;background:#fff;color:#e54545;padding:20px;font-size:13px;white-space:pre-wrap;z-index:9999;overflow:auto"></div>
@@ -126,8 +125,8 @@
   <h1>骑手险接口调试</h1>
 
   <div class="tabs" id="tabs">
-    <button class="tab" data-api="insure">保单投保</button>
-    <button class="tab active" data-api="reportClaims">骑手报案</button>
+    <button class="tab" data-api="newInsure">新投保</button>
+    <button class="tab active" data-api="newReport">新报案</button>
     <button class="tab" data-api="queryByTime">查询时间段</button>
     <button class="tab" data-api="queryByNo">查询单个</button>
     <button class="tab" data-api="material">补充材料</button>
@@ -151,7 +150,7 @@
       <div style="height:8px"></div>
       <div class="fbline"><label>代理前缀（解决 CORS）</label></div>
       <input id="proxyUrl" value="https://wwhlotus.cn/jz-qishou" placeholder="留空则直连 Base URL，可能被 CORS 拦截">
-      <div class="hint">默认走同源反代 https://wwhlotus.cn/jz-qishou（需在 Cloudflare 部署 jz-qishou-proxy-worker.js 转发到后端，详见 CORS-解决说明.md）。未部署该反代前此地址不可用；本机调试可填 http://127.0.0.1:3000/jz-qishou（需运行 proxy-server.js）。</div>
+      <div class="hint">本地代理示例：http://127.0.0.1:3000/jz-qishou。需要同时运行 proxy-server.js。不填则直连真实域名，浏览器会报 Failed to fetch。</div>
       <div style="height:8px"></div>
       <div class="fbline">
         <label>请求 Body 发送方式</label>
@@ -183,6 +182,35 @@ const $ = (id) => document.getElementById(id);
 // 各接口定义：每个接口都走同一套 加密 → 签名 → 带 sign+x-request-timestamp 调用
 // 字段 required:true 显示在上方主区；false 折叠在「展开更多字段」
 const APIS = {
+  // ===== 新投保 / 新报案：按 Python 脚本（淘宝闪购）的报文与请求方式复刻 =====
+  newInsure: {
+    name:'新投保', path:'/api/elm/insure', env:'cloudadmin', sendAppKey:true, serial:true, contentType:'text/plain',
+    fields:[
+      {key:'thirdProdCode', label:'保司产品编码 thirdProdCode', required:true, type:'select', options:['SNTSQSGZ001','SNTSQSGZ002','SNTSQSGZ003','SNTSQSTY001'], def:'SNTSQSTY001'},
+      {key:'insureStartDate', label:'起保时间（yyyy-MM-dd HH:mm:ss）', required:true, type:'text', def:'2026-09-21 17:00:00'},
+      {key:'insureEndDate', label:'止保时间（yyyy-MM-dd HH:mm:ss）', required:true, type:'text', def:'2026-09-21 23:59:59'},
+      {key:'province', label:'省（上海 / 甘肃 / 福建，留空则不传地区）', required:true, type:'text', def:'上海', note:'按 Python REGION_MAP 映射为 provinceId/cityId/districtId'},
+      {key:'certName', label:'骑手姓名 certName', required:true, type:'text', def:'刘表'},
+      {key:'certNo', label:'骑手证件号 certNo', required:true, type:'text', def:'310108198001016510'},
+      {key:'certType', label:'证件类型 certType', required:true, type:'text', def:'1'},
+      {key:'payPremium', label:'保费 payPremium', required:true, type:'text', def:'250'}
+    ]
+  },
+  newReport: {
+    name:'新报案', path:'/api/elm/report-claims', env:'apigateway', sendAppKey:true, serial:true, contentType:'application/json',
+    fields:[
+      {key:'policyNo', label:'保单号 policyNo', required:true, type:'text', def:'62042565660287529981988002'},
+      {key:'province', label:'省（省市区整体留空则不传地区）', required:true, type:'text', def:'上海'},
+      {key:'city', label:'市', required:true, type:'text', def:'上海'},
+      {key:'district', label:'区/县', required:true, type:'text', def:'静安', note:'按 Python REGION_MAP 三元组映射'},
+      {key:'riderName', label:'骑手姓名', required:true, type:'text', def:'刘备'},
+      {key:'riderIdNo', label:'骑手证件号', required:true, type:'text', def:'310108198001016211'},
+      {key:'riderPhone', label:'骑手手机号', required:true, type:'text', def:'18121049720'},
+      {key:'thirdProdCode', label:'保司产品编码', required:true, type:'select', options:['SNTSQSGZ001','SNTSQSGZ002','SNTSQSGZ003','SNTSQSTY001'], def:'SNTSQSTY001'},
+      {key:'insuranceType', label:'险种类型 insuranceType', required:true, type:'text', def:'TY'},
+      {key:'accidentTime', label:'事故时间（yyyy-MM-dd HH:mm:ss）', required:true, type:'text', def:'2026-09-29 00:00:00', note:'接单/到店/取餐/送达 由事故时间自动推算'}
+    ]
+  },
   insure: {
     name:'保单投保', path:'/api/elm/insure',
     fields:[
@@ -244,53 +272,63 @@ const APIS = {
     ]
   },
   queryByTime: {
+    // 文档：理赔 → 理赔状态查询（保司提供，用于补偿场景）
     name:'查询时间段', path:'/api/elm/query-audit-status',
     fields:[
-      {key:'startDate', label:'开始时间 startDate', required:true, type:'text', def:'2023-08-12 11:18:36', note:'格式 yyyy-MM-dd HH:mm:ss'},
-      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 16:18:36', note:'格式 yyyy-MM-dd HH:mm:ss'},
-      {key:'page', label:'页码 page', required:true, type:'number', def:1},
-      {key:'pageSize', label:'每页条数 pageSize', required:true, type:'number', def:1000}
+      {key:'startDate', label:'开始时间 startDate', required:true, type:'text', def:'2023-08-12 11:18:36', note:'格式 yyyy-MM-dd HH:mm:ss；维度为最近更新时间，批量查询必填'},
+      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 16:18:36', note:'格式 yyyy-MM-dd HH:mm:ss；批量查询必填'},
+      {key:'page', label:'页码 page', required:true, type:'number', def:1, note:'从 1 开始；批量查询必填'},
+      {key:'pageSize', label:'每页条数 pageSize', required:true, type:'number', def:1000, note:'最大 1000 条；批量查询必填'}
     ]
   },
   queryByNo: {
+    // 文档：理赔 → 理赔状态查询（保司提供，用于补偿场景）
     name:'查询单个', path:'/api/elm/query-audit-status',
     fields:[
-      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'报案时保司返回给饿了么的单号；与理赔单号二选一填'},
-      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么系统的理赔单号；与报案号二选一填（留空则不传该字段）'}
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'报案时保司返回给饿了么的单号；与 partnerClaimNo 二选一传，留空则不传'},
+      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么系统的理赔单号；与 reportNo 二选一传，留空则不传'}
     ]
   },
   material: {
     name:'补充材料', path:'/api/elm/material',
     fields:[
       {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565'},
-      {key:'claimInformationList', label:'理赔资料附件 claimInformationList', required:true, type:'json', def:[{fileId:"ATT202608120001",fileName:"理赔材料_1.jpg",fileType:1,fileUrl:"https://fin-insure-job-altest-alta1-oss-1.oss-cn-shanghai.aliyuncs.com/knight/pingan/5156b8eade594fe7a883904fd1951cce.jpeg?Expires=1787368481&OSSAccessKeyId=LTAI4FpAqze1RjGsW6Eo5kCB&Signature=IAnspGfNxEXdawYZF4eAq5oilLw%3D"}]}
+      {key:'claimInformationList', label:'理赔资料附件 claimInformationList', required:true, type:'json', def:[{fileId:"ATT202608120001",fileName:"理赔材料_1.jpg",fileType:1,fileUrl:"https://fin-insure-job-altest-alta1-oss-1.oss-cn-shanghai.aliyuncs.com/knight/pingan/5156b8eade594fe7a883904fd1951cce.jpeg?Expires=1787368481&OSSAccessKeyId=LTAI4FpAqze1RjGsW6Eo5kCB&Signature=IAnspGfNxEXdawYZF4eAq5oilLw%3D"}], note:'文档标为选填；单条四字段 fileId / fileName / fileType / fileUrl 均必填。fileType：1食品照 2就诊照 3就诊发票 4其他 5事故照 6订单详情页 7纸质材料 8理赔款支付凭证 9结案证明 10理赔分割单'},
+      {key:'hospitalName', label:'骑手首次就诊医院 hospitalName', required:false, type:'text', def:'', note:'选填'},
+      {key:'mainInsureOrderInfo', label:'主险保单 mainInsureOrderInfo', required:false, type:'json', def:'', note:'选填，超赔险时非空。结构：{"insureOrderNo":"主险保单号","prodName":"产品名称","companyName":"保司全称","insurePolicyfileUrl":"电子保单oss地址，有效期3h"}'},
+      {key:'mainClaimInfo', label:'主险理赔单 mainClaimInfo', required:false, type:'json', def:'', note:'选填，超赔险时非空。结构：{"payTime":1692962884000,"knightPayAmount":0,"thirdPayAmount":0,"claimConclusion":"赔案结论"}；payTime 为毫秒时间戳，两个金额单位为分'},
+      {key:'thirdInfos', label:'三者人伤信息 thirdInfos', required:false, type:'json', def:'', note:'选填，数组。单条结构：{"thirdIdNo":"三者身份证号","thirdPhone":"三者手机号","thirdMaintenanceUnit":"物损维修单位","thirdHospitalName":"首次就诊医院","accidentLiability":"事故责任认定","violationItmes":["违章项目"]}'},
+      {key:'expressInfo', label:'快递单信息 expressInfo', required:false, type:'json', def:'', note:'选填，数组。单条结构：{"expressCompany":"快递公司","expressNumber":"快递单号","postTime":"yyyy-MM-dd HH:mm:ss"}'}
     ]
   },
   cancelClaims: {
+    // 文档：理赔 → 取消理赔（保司提供）：仅需 reportNo
     name:'取消理赔', path:'/api/elm/cancel-claims',
     fields:[
-      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE0977462912180620241651412'}
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE0977462912180620241651412', note:'保司生成的报案单号；终态之前都允许撤案，返回 data 无内容'}
     ]
   },
   queryClaimsSingle: {
+    // 文档：理赔 → 理赔案件信息查询（保司提供）：reportNo / partnerClaimNo 二选一
     name:'案件信息单个', path:'/api/elm/query-claims',
     fields:[
-      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'报案时保司返回给饿了么的单号；与理赔单号二选一填'},
-      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么系统的理赔单号；与报案号二选一填（留空则不传该字段）'}
+      {key:'reportNo', label:'报案号 reportNo', required:true, type:'text', def:'ELE8346381613160320253515565', note:'保司报案号；与 partnerClaimNo 二选一传，留空则不传'},
+      {key:'partnerClaimNo', label:'理赔单号 partnerClaimNo', required:true, type:'text', def:'', note:'饿了么理赔单号；与 reportNo 二选一传，留空则不传'}
     ]
   },
   queryClaimsTime: {
+    // 文档：理赔 → 理赔案件信息查询（保司提供）：时间段批量查询
     name:'案件信息时间段', path:'/api/elm/query-claims',
     fields:[
       {key:'startDate', label:'开始时间 startDate', required:true, type:'text', def:'2026-08-12 00:00:00', note:'格式 yyyy-MM-dd HH:mm:ss，维度为最近更新时间；批量查询必填'},
-      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 23:59:59', note:'格式 yyyy-MM-dd HH:mm:ss，批量查询必填'},
+      {key:'endDate', label:'结束时间 endDate', required:true, type:'text', def:'2026-08-13 23:59:59', note:'格式 yyyy-MM-dd HH:mm:ss；批量查询必填'},
       {key:'page', label:'页码 page', required:true, type:'number', def:1, note:'从 1 开始；批量查询必填'},
       {key:'pageSize', label:'每页条数 pageSize', required:true, type:'number', def:1000, note:'最大 1000 条；批量查询必填'}
     ]
   }
 };
 
-let currentApi = 'reportClaims';
+let currentApi = 'newReport';
 let bgMask = 0;
 
 function renderOneField(wrap, f){
@@ -313,7 +351,7 @@ function renderOneField(wrap, f){
       lbl.appendChild(cb); lbl.appendChild(sp); ctrl.appendChild(lbl);
     });
   } else if(f.type==='json'){
-    ctrl=document.createElement('textarea'); ctrl.id='f_'+f.key; ctrl.value=JSON.stringify(f.def,null,2);
+    ctrl=document.createElement('textarea'); ctrl.id='f_'+f.key; ctrl.value=(f.def===''||f.def==null)?'':JSON.stringify(f.def,null,2);
   } else if(f.type==='bool'){
     ctrl=document.createElement('select'); ctrl.id='f_'+f.key;
     ['false','true'].forEach(opt=>{ const o=document.createElement('option'); o.value=opt; o.textContent=opt; if(String(f.def)===opt)o.selected=true; ctrl.appendChild(o); });
@@ -361,9 +399,106 @@ function setByPath(obj, path, value){
   }
   cur[path[path.length-1]]=value;
 }
+
+// ===== 新投保 / 新报案：复刻 Python 脚本的报文构造 =====
+const PK_APP_KEY='PMVOTQEM2AV4';
+const NEW_INSURE_REGION={ '上海':['10009','1','5254'], '甘肃':['10028','41','5850'], '福建':['10013','13','5404'] };
+const NEW_REPORT_REGION={
+  '上海|上海|静安':['10009','1','5254'],
+  '甘肃|兰州|安宁':['10028','41','5850'],
+  '福建|厦门|思明':['10013','13','5404']
+};
+function randDigits(n){ let s=''; for(let i=0;i<n;i++) s+=Math.floor(Math.random()*10); return s; }
+function toMillis(dtStr){
+  const m=String(dtStr||'').trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if(!m) throw new Error('时间格式应为 yyyy-MM-dd HH:mm:ss -> '+dtStr);
+  return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]).getTime();
+}
+function genInsureNo(seq){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return 'TS'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+String(seq).padStart(2,'0');
+}
+function valOf(key){ const el=document.getElementById('f_'+key); return el? String(el.value||'').trim() : ''; }
+
+function buildNewInsureBody(){
+  const thirdProdCode=valOf('thirdProdCode');
+  const startDate=valOf('insureStartDate'), endDate=valOf('insureEndDate');
+  const province=valOf('province');
+  const name=valOf('certName'), certNo=valOf('certNo'), certType=valOf('certType'), payPremium=valOf('payPremium');
+  let provinceId=null, cityId=null, districtId=null;
+  if(province){
+    const r=NEW_INSURE_REGION[province];
+    if(!r) throw new Error('省 '+province+' 未配置映射（仅支持 上海 / 甘肃 / 福建）');
+    provinceId=r[0]; cityId=r[1]; districtId=r[2];
+  }
+  const body={
+    thirdProdCode:thirdProdCode,
+    agencyInfo:{name:'全国测试代理商',id:'20226041',certType:'5',certNo:'91310106MA1FY4BD58'},
+    agencyRegion:{cityId:cityId,provinceId:provinceId},
+    applicant:{name:'全国测试代理商',certNo:'91310106MA1FY4BD58',certType:'5'},
+    bizContext:{agencyId:'20226041',knight:{certNo:certNo,certName:name,certType:certType}},
+    cityId:cityId, districtId:districtId,
+    insurant:{name:name,certNo:certNo,certType:certType},
+    insureNo:genInsureNo(1),
+    insureStartDate:toMillis(startDate),
+    insureEndDate:toMillis(endDate),
+    knightInfo:{id:randDigits(14),name:name,certType:certType,certNo:certNo},
+    payPremium:payPremium,
+    provinceId:provinceId,
+    rootAgencyInfo:{name:'全国测试代理商',id:'20226041',certNo:'91310106MA1FY4BD58',certType:'5'},
+    testFlag:false
+  };
+  if(!province){ delete body.provinceId; delete body.cityId; delete body.districtId; delete body.agencyRegion; }
+  return body;
+}
+
+function buildNewReportBody(){
+  const policyNo=valOf('policyNo');
+  const province=valOf('province'), city=valOf('city'), district=valOf('district');
+  const riderName=valOf('riderName'), riderIdNo=valOf('riderIdNo'), riderPhone=valOf('riderPhone');
+  const thirdProdCode=valOf('thirdProdCode'), insuranceType=valOf('insuranceType');
+  const accidentDate=toMillis(valOf('accidentTime'));
+  const oneHour=3600000, tenMin=600000;
+  const acceptedAt=accidentDate-oneHour;
+  const arriveShopAt=acceptedAt+tenMin;
+  const pickUpAt=arriveShopAt+tenMin;
+  const arriveUserAt=pickUpAt+tenMin;
+  let provinceId, cityId, districtId;
+  if(province){
+    const key=province+'|'+city+'|'+district;
+    const r=NEW_REPORT_REGION[key];
+    if(!r) throw new Error('省市区 '+key+' 未配置映射（仅支持 上海|上海|静安 / 甘肃|兰州|安宁 / 福建|厦门|思明）');
+    provinceId=r[0]; cityId=r[1]; districtId=r[2];
+  }
+  const body={
+    accidentCauseLevel2:'OTHER_ACCIDENT',
+    accidentDate:accidentDate,
+    lossTypeList:['INJURIES','THIRD_INJURIES','MATERIAL_LOSS'],
+    partnerClaimNo:randDigits(13),
+    policyNo:policyNo,
+    accidentPlace:'近铁城市广场南座',
+    accidentDistrictId:districtId,
+    reporterName:'站长',
+    accidentCauseLevel1:'ACCIDENT_DAMAGE',
+    claimInformationList:[{fileName:'knight/pingan/cc7ce91a33504445b11d9ae17900c433.jpg',fileUrl:'http://fin-insure-job-altest-alta1-oss-1.oss-cn-shanghai.aliyuncs.com/knight/pingan/cc7ce91a33504445b11d9ae17900c433.jpg?Expires=1663486524&OSSAccessKeyId=LTAI4FpAqze1RjGsW6Eo5kCB&Signature=ToaoLb52Zm4Lb%2FKJoUorNizSseE%3D',fileType:5,fileId:'335051'}],
+    accidentProcess:'追尾了，不能送外卖了',
+    accidentCityId:cityId,
+    reportExtendParams:{riderName:riderName,riderIdNo:riderIdNo,riderPhone:riderPhone},
+    insuranceType:insuranceType,
+    thirdProdCode:thirdProdCode,
+    accidentProvinceId:provinceId,
+    reporterTel:'19911112222',
+    trackingOrderList:[{orderNo:'AID00001',trackingId:'YDH0001',acceptedAt:acceptedAt,arriveShopAt:arriveShopAt,pickUpAt:pickUpAt,arriveUserAt:arriveUserAt,fromAddress:'人民广场福州路67号'}]
+  };
+  if(!province){ delete body.accidentProvinceId; delete body.accidentCityId; delete body.accidentDistrictId; }
+  return body;
+}
+
 function buildBody(){
   const body={};
   const api=APIS[currentApi];
+  if(currentApi==='newInsure') return buildNewInsureBody();
+  if(currentApi==='newReport') return buildNewReportBody();
   // 投保接口：各字段独立输入框，按 path 组装为嵌套对象（certName/certNo 写入多个目标路径）
   if(currentApi==='insure'){
     const base={};
@@ -428,6 +563,12 @@ $('btnPreview').onclick = ()=>{
 };
 
 function getBase(){ return (($('proxyUrl').value||'').trim() || ($('baseUrl').value||'').trim()).replace(/\/+$/,''); }
+// 新报案走 apigateway 业务网关：有代理走 /jz-gw，否则直连
+function getGwBase(){
+  const proxy=($('proxyUrl').value||'').trim();
+  if(!proxy) return 'https://test-apigateway.jz-ins.com/jz-qishou';
+  return proxy.replace(/\/jz-qishou\/*$/,'') + '/jz-gw';
+}
 function showResult(){ $('resultCard').style.display='block'; }
 function log(html){ showResult(); $('output').insertAdjacentHTML('beforeend', html); }
 window._blockRaw={};
@@ -475,8 +616,18 @@ async function doReport(){
     const api=APIS[currentApi];
     const body=buildBody();
     const ts=Date.now();
-    log(`<div class="kv">接口：<b>${api.name}</b> · x-request-timestamp = <b>${ts}</b>（当前毫秒时间戳）</div>`);
-    const [enc,sg]=await Promise.all([postJSON('/api/elm/encrypt',body),postJSON('/api/elm/sign',body)]);
+    // encrypt / sign 接口强制要求 appKey，故默认全部带上；如某接口确需不带，显式设 sendAppKey:false
+    const useAppKey=api.sendAppKey!==false;
+    const qs=useAppKey?('?appKey='+encodeURIComponent(PK_APP_KEY)):'';
+    const akHeaders=useAppKey?{'x-request-appkey':PK_APP_KEY}:undefined;
+    log(`<div class="kv">接口：<b>${api.name}</b> · x-request-timestamp = <b>${ts}</b>（当前毫秒时间戳）${useAppKey?' · appKey=<b>'+PK_APP_KEY+'</b>':''}</div>`);
+    let enc,sg;
+    if(api.serial){
+      enc=await postJSON('/api/elm/encrypt'+qs,body,akHeaders);
+      sg =await postJSON('/api/elm/sign'+qs,body,akHeaders);
+    }else{
+      [enc,sg]=await Promise.all([postJSON('/api/elm/encrypt'+qs,body,akHeaders),postJSON('/api/elm/sign'+qs,body,akHeaders)]);
+    }
     const encData=pick(enc.json,['data','encryptData','ciphertext','result']);
     const sign=pick(sg.json,['data','sign','signature','result']);
     renderBlock('① 加密',enc.status,enc.json, encData!=null?`提取 data：<b title="${escapeHtml(String(encData))}">${escapeHtml(String(encData))}</b>`:'未找到 data 字段');
@@ -485,11 +636,15 @@ async function doReport(){
     if(sign==null) throw new Error('未获取到 sign，无法调用');
     const mode=$('bodyMode').value;
     const headers={'sign':String(sign),'x-request-timestamp':String(ts)};
+    if(useAppKey) headers['x-request-appkey']=PK_APP_KEY;
     let ctype,reqBody;
-    if(mode==='raw'){ ctype='text/plain'; reqBody=String(encData); } else { ctype='application/json'; reqBody=JSON.stringify({data:encData}); }
-    const res=await fetch(getBase()+api.path,{method:'POST',headers:Object.assign({'Content-Type':ctype},headers),body:reqBody});
+    if(api.contentType){ ctype=api.contentType; reqBody=String(encData); }
+    else if(mode==='raw'){ ctype='text/plain'; reqBody=String(encData); }
+    else { ctype='application/json'; reqBody=JSON.stringify({data:encData}); }
+    const bizBase = api.env==='apigateway' ? getGwBase() : getBase();
+    const res=await fetch(bizBase+api.path+qs,{method:'POST',headers:Object.assign({'Content-Type':ctype},headers),body:reqBody});
     const text=await res.text(); let json; try{json=JSON.parse(text);}catch{json=text;}
-    renderBlock('③ 调用 '+api.name,res.status,json,`Content-Type: <b>${ctype}</b> · path: <b>${api.path}</b>`);
+    renderBlock('③ 调用 '+api.name,res.status,json,`Content-Type: <b>${ctype}</b> · host: <b>${bizBase}</b> · path: <b>${api.path}</b>`);
   }catch(e){
     log(`<div class="out" style="color:#fca5a5">调用失败：${escapeHtml(e.message)}</div>`);
   }finally{ btn.disabled=false; btn.textContent='一键调用'; }
@@ -497,21 +652,19 @@ async function doReport(){
 $('btnReport').onclick=doReport;
 $('btnClear').onclick=clearLog;
 
-renderApi('reportClaims');
+renderApi('newReport');
 
 // ===== 调色盘 =====
 const THEMES={
-  default:{bg:'#0f172a',card:'#1e293b',text:'#e2e8f0',sub:'#94a3b8',line:'#334155',primary:'#3b82f6'},
+  default:{bg:'#f5f6f8',card:'#ffffff',text:'#1f2329',sub:'#8a8f99',line:'#e6e8eb',primary:'#2f6bff'},
   dark:{bg:'#0f172a',card:'#1e293b',text:'#e2e8f0',sub:'#94a3b8',line:'#334155',primary:'#3b82f6'},
   green:{bg:'#eef6ef',card:'#ffffff',text:'#1f2a22',sub:'#6b7d70',line:'#d6e4d9',primary:'#1fab5a'},
   warm:{bg:'#fff6ee',card:'#ffffff',text:'#2a211a',sub:'#9a8a7d',line:'#f0e0d4',primary:'#f5872e'},
   purple:{bg:'#f5f0fb',card:'#ffffff',text:'#241a2e',sub:'#8a7d96',line:'#e7dbf0',primary:'#8b5cf6'},
-  pink:{bg:'#fdf0f5',card:'#ffffff',text:'#2e1a24',sub:'#9a7d88',line:'#f4d9e3',primary:'#ec4899'},
-  red:{bg:'#d60000',card:'rgba(0,0,0,.35)',text:'#fff',sub:'#ffe082',line:'rgba(255,255,255,.22)',primary:'#ffd700'}
+  pink:{bg:'#fdf0f5',card:'#ffffff',text:'#2e1a24',sub:'#9a7d88',line:'#f4d9e3',primary:'#ec4899'}
 };
 // tab 流光颜色预设（conic 渐变使用 var(--flow-angle) 实现旋转）
 const FLOW_PRESETS={
-  gold:{label:'金色',stops:'rgba(255,215,0,0) 0deg, #ffd700 60deg, #fff0a3 130deg, #ffd700 200deg, rgba(255,215,0,0) 260deg, rgba(255,215,0,0) 360deg',preview:'linear-gradient(135deg,#ffd700,#fff0a3)'},
   blue:{label:'蓝色',stops:'rgba(47,128,255,0) 0deg, #2f80ff 60deg, #7cc4ff 130deg, #2f80ff 200deg, rgba(47,128,255,0) 260deg, rgba(47,128,255,0) 360deg',preview:'linear-gradient(135deg,#2f80ff,#7cc4ff)'},
   rainbow:{label:'彩虹色',stops:'#ff4d4f, #ffa940, #ffe066, #52c41a, #2f80ff, #9254de, #ff4d4f',preview:'conic-gradient(#ff4d4f,#ffa940,#ffe066,#52c41a,#2f80ff,#9254de,#ff4d4f)'},
   yellow:{label:'黄色',stops:'rgba(255,214,0,0) 0deg, #ffd600 60deg, #fff59d 130deg, #ffd600 200deg, rgba(255,214,0,0) 260deg, rgba(255,214,0,0) 360deg',preview:'linear-gradient(135deg,#ffd600,#fff59d)'},
@@ -540,7 +693,7 @@ function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }c
     sw.appendChild(d);
   });
   const saved=loadTheme();
-  if(saved){ applyVars(saved); } else { applyVars(THEMES.default); markActive('default'); syncPickers(THEMES.default); }
+  if(saved){ applyVars(saved); } else { applyVars(THEMES.default); markActive('default'); }
   syncPickers(curVars());
   $('paletteBtn').onclick=()=> $('palettePanel').classList.toggle('show');
   document.addEventListener('click', e=>{
@@ -556,7 +709,7 @@ function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }c
     const s=loadBg();
     if(s&&s.url){ $('bgOverlay').style.backgroundImage=buildOverlay(s.url,bgMask); s.mask=bgMask; localStorage.setItem('riderBg', JSON.stringify(s)); }
   };
-  $('resetTheme').onclick=()=>{ applyVars(THEMES.default); saveTheme(THEMES.default); markActive('default'); syncPickers(THEMES.default); applyFlow('rainbow'); resetDefaultBg(); };
+  $('resetTheme').onclick=()=>{ applyVars(THEMES.default); saveTheme(THEMES.default); markActive('default'); syncPickers(THEMES.default); applyFlow('blue'); };
   // 流光颜色预设
   const fsw=$('flowSwatches');
   Object.keys(FLOW_PRESETS).forEach(name=>{
@@ -568,13 +721,12 @@ function syncPickers(v){ try{ if(v.primary) $('pickPrimary').value=v.primary; }c
     fsw.appendChild(d);
   });
   const savedFlow=loadFlow();
-  if(savedFlow && FLOW_PRESETS[savedFlow]){ applyFlow(savedFlow); } else { applyFlow('rainbow'); }
+  if(savedFlow && FLOW_PRESETS[savedFlow]){ applyFlow(savedFlow); } else { applyFlow('blue'); }
 })();
 
 // ===== 背景图片 =====
-const DEFAULT_BG_NAME='为人民服务';
-function resetDefaultBg(){ bgMask=0; try{ $('pickMask').value=0; }catch(e){} applyBg(DEFAULT_BG_URL,DEFAULT_BG_NAME); }
 function loadBg(){ try{ return JSON.parse(localStorage.getItem('riderBg')); }catch(e){ return null; } }
+const DEFAULT_BG='rider-default-bg.webp';
 function buildOverlay(url, mask){
   if(!url) return '';
   const m = Number(mask)||0;
@@ -586,7 +738,7 @@ function applyBg(url,name){
   if(!url){
     document.body.classList.remove('has-bg');
     $('bgOverlay').style.backgroundImage='';
-    localStorage.removeItem('riderBg');
+    localStorage.setItem('riderBg', JSON.stringify({name:'__native',url:'',mask:0}));
     markBgActive(null); return;
   }
   document.body.classList.add('has-bg');
@@ -599,17 +751,6 @@ function markBgActive(name){
 }
 (function initBg(){
   const wrap=$('bgItems');
-  // 默认内嵌背景：为人民服务
-  const fixed=document.createElement('div');
-  fixed.className='bg-item'; fixed.dataset.name=DEFAULT_BG_NAME;
-  const fthumb=document.createElement('div');
-  fthumb.className='bg-thumb';
-  fthumb.style.backgroundImage='url('+JSON.stringify(DEFAULT_BG_URL)+')';
-  const fspan=document.createElement('span');
-  fspan.textContent=DEFAULT_BG_NAME;
-  fixed.appendChild(fthumb); fixed.appendChild(fspan);
-  fixed.onclick=()=> applyBg(DEFAULT_BG_URL,DEFAULT_BG_NAME);
-  wrap.appendChild(fixed);
   // 动态加载本地文件夹图片（经代理 /bg-list、/bgimg 提供）
   fetch(location.origin + '/bg-list').then(r=>r.json()).then(files=>{
     files.forEach(fn=>{
@@ -628,11 +769,13 @@ function markBgActive(name){
     });
     restoreBg();
   }).catch(e=>{
-    const tip=document.createElement('div');
-    tip.className='bg-item'; tip.style.color='var(--sub)'; tip.style.cursor='default';
-    tip.textContent='（需通过本地代理打开才能加载更多背景图）';
-    wrap.appendChild(tip);
-    restoreBg();
+    const isLocal=/^(localhost|127\.0\.0\.1|192\.168\.)/.test(location.hostname);
+    if(isLocal){
+      const tip=document.createElement('div');
+      tip.className='bg-item'; tip.style.color='var(--sub)'; tip.style.cursor='default';
+      tip.textContent='（需通过本地代理打开才能加载背景图）';
+      wrap.appendChild(tip);
+    }
   });
   // 自定义图片
   const custom=document.createElement('div');
@@ -656,15 +799,24 @@ function markBgActive(name){
   wrap.appendChild(custom);
   // 原生界面
   $('bgNative').onclick=()=> applyBg(null,null);
+  // 恢复（列表加载完成后由上面调用；这里兜底）
+  restoreBg();
   function restoreBg(){
-    try{
-      const saved=JSON.parse(localStorage.getItem('riderBg'));
-      if(saved && saved.url){ bgMask = (saved.mask!=null)? saved.mask : 0; applyBg(saved.url,saved.name); }
-      else { bgMask=0; applyBg(DEFAULT_BG_URL,DEFAULT_BG_NAME); }
-    }catch(e){ bgMask=0; applyBg(DEFAULT_BG_URL,DEFAULT_BG_NAME); }
+    let raw=null;
+    try{ raw=localStorage.getItem('riderBg'); }catch(e){}
+    if(raw!==null){
+      try{
+        const saved=JSON.parse(raw);
+        if(saved && saved.url){ bgMask=(saved.mask!=null)?saved.mask:0; applyBg(saved.url,saved.name); }
+      }catch(e){}
+      return;
+    }
+    // 首次访问：使用内置默认背景
+    bgMask=0;
+    document.body.classList.add('has-bg');
+    const ov=$('bgOverlay');
+    if(ov) ov.style.backgroundImage=buildOverlay(DEFAULT_BG,0);
   }
-  // 兜底：如果异步列表迟迟没有渲染，也尝试恢复默认背景
-  setTimeout(restoreBg, 0);
 })();
 </script>
 </body>
