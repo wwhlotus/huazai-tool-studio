@@ -36,6 +36,7 @@
     json:    '<path d="M9.5 4C7 5.2 6.5 7.6 7 10c.3 1.7.3 2.6 0 4.4.5 2.4 0 4.8-2.5 6"/><path d="M14.5 4c2.5 1.2 3 3.6 2.5 6c-.3 1.7-.3 2.6 0 4.4C17 17.4 16.5 19.8 14 21"/>',
     ai:      '<rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 8V5M9 13h.01M15 13h.01M9 16h6"/>',
     sites:   '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/>',
+    recall:  '<path d="M3.6 12a8.4 8.4 0 1 0 2.6-6.1"/><path d="M3 4.6v4.6h4.6"/><path d="M10.4 9.2l5.6 2.8-5.6 2.8z"/>',
     pet:     '<circle cx="6.5" cy="10" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="14" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10" r="2" fill="currentColor" stroke="none"/><path d="M12 12c-2.5 0-4.5 1.8-4.8 4.2-.3 2.4.6 4.8 4.8 4.8s5.1-2.4 4.8-4.8C16.5 13.8 14.5 12 12 12z"/>',
   };
   function svg(name, size) {
@@ -82,16 +83,17 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
-  function copyText(text) {
+  function copyText(text, okMsg) {
+    const msg = okMsg || '已复制';
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => toast('已复制')).catch(() => fallbackCopy(text));
-    } else fallbackCopy(text);
+      navigator.clipboard.writeText(text).then(() => toast(msg)).catch(() => fallbackCopy(text, msg));
+    } else fallbackCopy(text, msg);
   }
-  function fallbackCopy(text) {
+  function fallbackCopy(text, okMsg) {
     const ta = document.createElement('textarea');
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); toast('已复制'); } catch { toast('复制失败'); }
+    try { document.execCommand('copy'); toast(okMsg || '已复制'); } catch { toast('复制失败'); }
     ta.remove();
   }
 
@@ -176,6 +178,7 @@
     font:    { title: '字体设置', short: '字体', icon: 'text', color: 'var(--c-violet)', desc: '分别设置每个页面以及侧栏、顶栏的字体大小、颜色与样式', render: renderFont },
     ai:      { title: 'AI 大全', short: 'AI', icon: 'ai', color: 'var(--c-teal)', desc: '常用 AI 网站导航，点击直达官网', render: renderAi },
     sites:   { title: '常用网站', short: '网站', icon: 'sites', color: 'var(--c-blue)', desc: '常用站点导航，点击直达', render: renderSites },
+    recall:  { title: '视频回溯', short: '回溯', icon: 'recall', color: 'var(--c-teal)', desc: '上传录制包回放操作轨迹，定位问题步骤并导出片段', render: renderRecall },
     json:    { title: 'JSON 工具', short: 'JSON', icon: 'json', color: 'var(--c-green)', desc: '在线解析格式化、压缩转义、可视化编辑器', render: renderJson },
     pet:     { title: '宠物陪伴', short: '宠物', icon: 'pet', color: 'var(--c-violet)', desc: '挑选一位小伙伴常驻网页右下角，陪你一起干活', render: renderPet },
     homecfg: { title: '首页设置', short: '首页', icon: 'home', color: 'var(--c-amber)', desc: '设置进入页背景、陪伴宠物与动作、播放速度，自动保存到本地', render: renderHomeCfg },
@@ -183,7 +186,7 @@
 
   // 侧栏分组 与 移动端底部 Tab（第 6 格为「更多」→ 打开完整抽屉）
   const NAV_GROUPS = [
-    { name: '实用工具', tools: ['timestamp', 'idcard', 'ai', 'sites', 'json'] },
+    { name: '实用工具', tools: ['timestamp', 'idcard', 'recall', 'ai', 'sites', 'json'] },
     { name: '个性化', tools: ['palette', 'font', 'pet', 'homecfg'] },
     { name: '文档', tools: ['excel', 'pdf'] },
     { name: '图片', tools: ['crop', 'collage'] },
@@ -573,15 +576,105 @@
                 <div class="idcard-photo" id="pvPhoto"></div>
               </div>
             </div>
+            <div class="idcard-dl-row">
+              <button class="dl-btn" id="idDownload" type="button" title="下载证件图片（PNG）" aria-label="下载证件图片（PNG）">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                  <path d="M12 3.2c.66 0 1.2.54 1.2 1.2v7.9l2.36-2.36a1.2 1.2 0 0 1 1.7 1.7l-4.41 4.41a1.2 1.2 0 0 1-1.7 0L6.74 11.64a1.2 1.2 0 0 1 1.7-1.7L10.8 12.3V4.4c0-.66.54-1.2 1.2-1.2z" fill="currentColor"/>
+                  <rect x="4" y="18.4" width="16" height="2.4" rx="1.2" fill="currentColor"/>
+                </svg>
+                <span class="now">Save</span>
+                <span class="play">Download</span>
+              </button>
+              <button class="dl-btn dl-btn-log" id="idLogExport" type="button" title="导出最近 30 天证件号变更记录（TXT）" aria-label="导出最近 30 天证件号变更记录（TXT）">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                  <path d="M12 3.2c.66 0 1.2.54 1.2 1.2v7.9l2.36-2.36a1.2 1.2 0 0 1 1.7 1.7l-4.41 4.41a1.2 1.2 0 0 1-1.7 0L6.74 11.64a1.2 1.2 0 0 1 1.7-1.7L10.8 12.3V4.4c0-.66.54-1.2 1.2-1.2z" fill="currentColor"/>
+                  <rect x="4" y="18.4" width="16" height="2.4" rx="1.2" fill="currentColor"/>
+                </svg>
+                <span class="now">Export</span>
+                <span class="play">TXT Log</span>
+              </button>
+            </div>
           </div>
-          <div class="action-bar idcard-dl-bar">
-            <button class="btn-primary" id="idDownload">下载证件图片（PNG）</button>
+          <div class="card id-log-card">
+            <div class="section-title">最近 30 天证件号变更</div>
+            <div class="id-log" id="idLog"></div>
           </div>
         </div>
       </div>`;
 
     const $ = (s) => root.querySelector(s);
     const isManual = () => $('#idManual').checked;
+
+    /* ---- 最近 30 天证件号变更记录 ---- */
+    const ID_LOG_KEY = 'ets_id_changes';
+    const ID_LOG_DAYS = 30;      // 保留天数
+    const ID_LOG_MAX = 200;      // 最多保留条数
+    let _idLogTimer = null;
+    function loadIdLog() {
+      try {
+        const arr = JSON.parse(localStorage.getItem(ID_LOG_KEY)) || [];
+        const cutoff = Date.now() - ID_LOG_DAYS * 864e5;
+        return arr.filter(r => r && r.id && r.t >= cutoff).slice(0, ID_LOG_MAX);
+      } catch { return []; }
+    }
+    function logIdChange() {
+      const id = state.id;
+      if (!id) return;
+      const list = loadIdLog();
+      if (list.length && list[0].id === id) { renderIdLog(); return; }
+      list.unshift({ id, t: Date.now() });
+      try { localStorage.setItem(ID_LOG_KEY, JSON.stringify(list.slice(0, ID_LOG_MAX))); } catch {}
+      renderIdLog();
+    }
+    function scheduleIdLog() { clearTimeout(_idLogTimer); _idLogTimer = setTimeout(logIdChange, 700); }
+    const _pad2 = n => String(n).padStart(2, '0');
+    const _fmtTime = t => {
+      const d = new Date(t);
+      return `${d.getFullYear()}-${_pad2(d.getMonth() + 1)}-${_pad2(d.getDate())} ${_pad2(d.getHours())}:${_pad2(d.getMinutes())}`;
+    };
+    /* 导出最近 N 天全部证件号变更为 TXT */
+    function exportIdLog() {
+      const list = loadIdLog();
+      if (!list.length) { toast('最近 ' + ID_LOG_DAYS + ' 天暂无证件号变更记录'); return; }
+      const now = Date.now();
+      const head = [
+        '证件号变更记录（最近 ' + ID_LOG_DAYS + ' 天）',
+        '导出时间：' + _fmtTime(now),
+        '记录条数：' + list.length + ' 条',
+        '----------------------------------------'
+      ];
+      const body = list.map(r => _fmtTime(r.t) + '  ' + r.id);
+      const text = head.concat(body).join('\r\n');
+      const d = new Date(now);
+      const name = '证件号变更记录_' + d.getFullYear() + _pad2(d.getMonth() + 1) + _pad2(d.getDate()) + '.txt';
+      downloadBlob(new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' }), name);
+      toast('已导出 ' + list.length + ' 条证件号记录');
+    }
+    function renderIdLog() {
+      const box = $('#idLog');
+      if (!box) return;
+      const list = loadIdLog();
+      if (!list.length) { box.innerHTML = '<div class="id-log-empty">最近 30 天暂无号码变更</div>'; return; }
+      box.innerHTML = list.map(r => `<div class="id-log-item">`
+        + `<span class="id-log-no">${r.id}</span>`
+        + `<button class="id-log-copy" type="button" data-id="${r.id}" aria-label="复制证件号码 ${r.id}">复制</button>`
+        + `</div>`).join('');
+    }
+    function bindIdLogCopy() {
+      const box = $('#idLog');
+      if (!box) return;
+      box.addEventListener('click', (e) => {
+        const btn = e.target.closest('.id-log-copy');
+        if (!btn) return;
+        const val = btn.dataset.id;
+        if (!val) return;
+        copyText(val, '已复制证件号码');
+        btn.classList.add('is-copied');
+        btn.textContent = '已复制';
+        clearTimeout(btn._t);
+        btn._t = setTimeout(() => { btn.classList.remove('is-copied'); btn.textContent = '复制'; }, 1500);
+      });
+    }
 
     function syncForm() {
       $('#inName').value = state.name || '';
@@ -628,7 +721,7 @@
       state.avatar = avatarImage(idx); state.avatarIndex = idx;
       if (state.avatar.complete) updatePreview();
       else state.avatar.onload = () => updatePreview();
-      syncForm(); updatePreview();
+      syncForm(); updatePreview(); logIdChange();
     }
 
     $('#inName').addEventListener('input', e => { state.name = e.target.value; updatePreview(); });
@@ -636,7 +729,7 @@
       state.age = e.target.value === '' ? '' : parseInt(e.target.value, 10);
       const birth = calcBirthFromAge(state.age);
       if (birth) { state.birth = birth; if (!isManual()) state.id = genId(state.birth, state.gender); }
-      updatePreview();
+      updatePreview(); logIdChange();
     });
     $('#inEthnic').addEventListener('input', e => { state.ethnic = e.target.value; updatePreview(); });
     $('#inAddr').addEventListener('input', e => { state.addr = e.target.value; updatePreview(); });
@@ -644,9 +737,9 @@
       state.birth = e.target.value;
       state.age = calcAge(state.birth);
       if (!isManual()) state.id = genId(state.birth, state.gender);
-      updatePreview();
+      updatePreview(); logIdChange();
     });
-    $('#inGender').addEventListener('change', e => { state.gender = e.target.value; if (!isManual()) state.id = genId(state.birth, state.gender); updatePreview(); });
+    $('#inGender').addEventListener('change', e => { state.gender = e.target.value; if (!isManual()) state.id = genId(state.birth, state.gender); updatePreview(); logIdChange(); });
     $('#inAvatar').addEventListener('change', e => {
       const f = e.target.files[0]; if (!f) return;
       const img = new Image();
@@ -668,14 +761,16 @@
     });
     $('#idNoInput').addEventListener('input', e => {
       const p = parseId(e.target.value);
-      if (!p) { state.id = e.target.value.trim().toUpperCase(); updatePreview(); return; }
-      state.id = p.id; state.birth = p.birth; state.gender = p.gender; syncForm(); updatePreview();
+      if (!p) { state.id = e.target.value.trim().toUpperCase(); updatePreview(); scheduleIdLog(); return; }
+      state.id = p.id; state.birth = p.birth; state.gender = p.gender; syncForm(); updatePreview(); scheduleIdLog();
     });
     $('#idRandom').addEventListener('click', randomAll);
-    $('#idRefreshNo').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); });
+    $('#idRefreshNo').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); logIdChange(); });
     $('#idCopy').addEventListener('click', () => { if (state.id) { copyText(state.id); toast('已复制证件号码'); } });
-    $('#idRefreshCopy').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); if (state.id) { copyText(state.id); toast('已刷新并复制证件号码'); } });
+    $('#idRefreshCopy').addEventListener('click', () => { state.id = refreshIdTail(state.id, state.gender); if (isManual()) $('#idNoInput').value = state.id; updatePreview(); logIdChange(); if (state.id) { copyText(state.id); toast('已刷新并复制证件号码'); } });
     $('#idDownload').addEventListener('click', download);
+    const _logExportBtn = $('#idLogExport');
+    if (_logExportBtn) _logExportBtn.addEventListener('click', exportIdLog);
 
     // 初始默认值（年龄按当前电脑时间实时计算）
     state.age = calcAge(state.birth);
@@ -685,7 +780,7 @@
     state.avatar = avatarImage(initIdx); state.avatarIndex = initIdx;
     if (state.avatar.complete) updatePreview();
     else state.avatar.onload = () => updatePreview();
-    syncForm(); updatePreview();
+    syncForm(); updatePreview(); renderIdLog(); bindIdLogCopy();
 
     function drawStar(ctx, cx, cy, spikes, outerR, innerR, color) {
       let rot = Math.PI / 2 * 3, step = Math.PI / spikes;
@@ -1606,6 +1701,70 @@
         c.style.display = (!q || txt.indexOf(q) >= 0) ? '' : 'none';
       });
     });
+  }
+
+  /* 视频回溯：内嵌独立回放服务（7788 端口）。主机名跟随当前页面，局域网访问同样可用 */
+  const RECALL_PORT = 7788;
+  function recallBase() {
+    const host = location.hostname || '127.0.0.1';
+    return 'http://' + host + ':' + RECALL_PORT + '/';
+  }
+  function renderRecall(root) {
+    const url = recallBase();
+    root.innerHTML = `
+      <div class="recall-wrap">
+        <div class="recall-bar">
+          <span class="recall-state" id="recallState"><i class="recall-dot"></i>正在检测服务…</span>
+          <code class="recall-url">${url}</code>
+          <span class="recall-ops">
+            <button class="ghost-btn recall-mini" id="recallReload">刷新</button>
+            <button class="ghost-btn recall-mini" id="recallOpen">新窗口打开</button>
+          </span>
+        </div>
+        <iframe class="recall-frame" id="recallFrame" title="视频回溯" hidden></iframe>
+        <div class="recall-off" id="recallOff" hidden>
+          <div class="recall-off-ico">${svg('recall', 34)}</div>
+          <h3>视频回溯服务未启动</h3>
+          <p>工坊本身是纯静态页面，视频回溯跑在独立的本地服务上，需要它在 <b>${RECALL_PORT}</b> 端口运行。</p>
+          <p class="recall-off-hint">到服务所在目录执行 <code>node server.js</code> 启动后，点下方按钮重新检测。</p>
+          <button class="btn-primary" id="recallRetry">重新检测</button>
+        </div>
+      </div>`;
+
+    const frame = $('#recallFrame'), off = $('#recallOff'), state = $('#recallState');
+    function paint(ok, text) {
+      state.className = 'recall-state ' + (ok ? 'is-on' : 'is-off');
+      state.innerHTML = '<i class="recall-dot"></i>' + text;
+    }
+    function online(force) {
+      paint(true, '服务在线');
+      off.hidden = true;
+      frame.hidden = false;
+      if (force || frame.dataset.src !== url) {
+        frame.dataset.src = url;
+        frame.src = 'about:blank';
+        setTimeout(() => { frame.src = url; }, 30);
+      }
+    }
+    function offline() {
+      paint(false, '服务离线');
+      frame.hidden = true;
+      off.hidden = false;
+    }
+    function probe(force) {
+      paint(false, '正在检测服务…');
+      if (!frame.dataset.src) { off.hidden = true; frame.hidden = true; }
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      fetch(url + 'api/health', { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
+        .then(() => { clearTimeout(timer); online(force); })
+        .catch(() => { clearTimeout(timer); offline(); });
+    }
+
+    $('#recallReload').addEventListener('click', () => probe(true));
+    $('#recallRetry').addEventListener('click', () => probe(true));
+    $('#recallOpen').addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer'));
+    probe(false);
   }
 
   function renderAi(root) {

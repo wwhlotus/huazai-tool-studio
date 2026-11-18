@@ -570,6 +570,54 @@ input[type="range"] {
 .ai-go { flex: 0 0 auto; color: var(--text-subtle); transform: rotate(-90deg); }
 .ai-tip { margin-top: var(--space-4); font-size: var(--fs-xs); font-weight: 700; color: var(--text-subtle); text-align: center; }
 
+/* ---------- 视频回溯（内嵌 7788 独立回放服务） ---------- */
+.recall-wrap { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+
+.recall-bar {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border: var(--bw) solid var(--line); border-radius: var(--r-btn);
+  background: var(--surface); box-shadow: var(--sh-1);
+}
+.recall-state { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-xs); font-weight: 800; white-space: nowrap; }
+.recall-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-subtle); flex: none; }
+.recall-state.is-on .recall-dot { background: var(--success); box-shadow: 0 0 0 3px rgba(30,126,79,.18); }
+.recall-state.is-off .recall-dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.18); }
+
+.recall-url {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: var(--fs-xs); color: var(--text-muted);
+  background: var(--surface-2); padding: 3px 9px; border-radius: 6px;
+}
+.recall-ops { display: flex; gap: var(--space-2); margin-left: auto; }
+.recall-mini { width: auto; padding: 6px 13px; font-size: var(--fs-xs); }
+
+.recall-frame {
+  display: block; width: 100%;
+  height: calc(100dvh - 236px); min-height: 460px;
+  border: var(--bw) solid var(--line); border-radius: var(--r-card);
+  background: var(--surface); box-shadow: var(--sh-1);
+}
+
+.recall-off {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-2); min-height: 340px; padding: var(--space-6) var(--space-5);
+  text-align: center;
+  border: 3px dashed var(--line); border-radius: var(--r-card); background: var(--surface);
+}
+.recall-off-ico { color: var(--c-teal); margin-bottom: var(--space-1); }
+.recall-off h3 { margin: 0; font-size: var(--fs-xl); font-weight: 900; }
+.recall-off p { margin: 0; max-width: 540px; color: var(--text-subtle); font-size: var(--fs-sm); font-weight: 600; line-height: 1.75; }
+.recall-off-hint code { background: var(--surface-2); color: var(--text); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+.recall-off .btn-primary { margin-top: var(--space-3); }
+
+@media (max-width: 820px) {
+  .recall-frame { height: calc(100dvh - 300px); min-height: 380px; }
+  .recall-url { order: 3; width: 100%; }
+  .recall-ops { margin-left: auto; }
+}
+
 .sort-list { display: flex; flex-direction: column; gap: var(--space-2); max-height: 260px; overflow-y: auto; padding: 3px; }
 .sort-item {
   display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2);
@@ -641,9 +689,131 @@ input[type="range"] {
 
 /* ---------- 11. 证件生成 ---------- */
 .idcard-layout { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr); gap: var(--space-5); align-items: start; }
+/* 右列纵排：预览卡（含内嵌下载按钮）+ 下方变更记录 */
 .idcard-left, .idcard-right { display: flex; flex-direction: column; gap: var(--space-5); }
 .idcard-right { max-width: 560px; }
-.idcard-dl-bar { justify-content: center; }
+
+/* 预览卡模块内的下载按钮：S2 酒红丝绒（黑红打底 + 暗金细边 + 银白字）+ 悬停图标飞出 + 双文字切换 */
+.idcard-dl-row { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: var(--space-4); }
+/* 两个按钮等宽；213px 对齐 Segoe Script 21px 下 Download 的实际字宽，换字体需同步 */
+.idcard-dl-row .dl-btn { flex: 0 0 213px; width: 213px; max-width: 213px; }
+.dl-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 48px; padding: 0 14px;
+  color: #F2F2F6; text-shadow: 0 1px 6px rgba(20, 2, 6, .85);
+  text-transform: uppercase; cursor: pointer;
+  border: solid 2px #B08A46; letter-spacing: 1px;
+  font-family: 'Segoe Script', 'Segoe Print', cursive;
+  font-weight: 400; font-size: 21px; line-height: 1.1;
+  background: linear-gradient(135deg, #3A0910 0%, #6E1222 50%, #3A0910 100%);
+  box-shadow: inset 0 0 26px rgba(20, 2, 6, .92), inset 0 1px 0 rgba(242, 242, 246, .14), 0 6px 18px rgba(58, 9, 16, .42);
+  border-radius: 50px; position: relative; overflow: hidden;
+  transition: all .5s ease;
+}
+.dl-btn:hover {
+  background: linear-gradient(135deg, #4A0C15 0%, #84182B 50%, #4A0C15 100%);
+  border-color: #D2AC63;
+  box-shadow: inset 0 0 26px rgba(20, 2, 6, .85), inset 0 1px 0 rgba(242, 242, 246, .2), 0 8px 22px rgba(58, 9, 16, .5);
+}
+.dl-btn:active { transform: scale(.9); transition: all 100ms ease; }
+
+/* 导出 TXT 按钮：沿用证件号变更记录行的浅青渐变，与酒红主按钮并排 */
+.dl-btn-log {
+  color: #23414F; text-shadow: 0 1px 0 rgba(255, 255, 255, .75);
+  border-color: #6E9AB0;
+  background: linear-gradient(135deg, #E4F0F9 0%, #D5E7F3 45%, #C8DFD3 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 6px 18px rgba(110, 140, 165, .3);
+}
+.dl-btn-log:hover {
+  border-color: #3E7A96;
+  background: linear-gradient(135deg, #EFF7FD 0%, #E2F0FA 45%, #D9EDE3 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 8px 22px rgba(110, 140, 165, .38);
+}
+[data-theme="dark"] .dl-btn-log {
+  color: #E9EFF4; text-shadow: 0 1px 6px rgba(6, 14, 20, .8);
+  border-color: #4E7A8E;
+  background: linear-gradient(135deg, #2B3B4B 0%, #253442 45%, #213A31 100%);
+  box-shadow: inset 0 1px 0 rgba(233, 239, 244, .14), 0 6px 18px rgba(8, 16, 24, .42);
+}
+[data-theme="dark"] .dl-btn-log:hover {
+  border-color: #7FB0C4;
+  background: linear-gradient(135deg, #33455A 0%, #2C3D4E 45%, #27443A 100%);
+  box-shadow: inset 0 1px 0 rgba(233, 239, 244, .2), 0 8px 22px rgba(8, 16, 24, .5);
+}
+.dl-btn:focus-visible { outline: 3px solid var(--primary-500); outline-offset: 3px; }
+.dl-btn svg { transition: all .5s ease; z-index: 2; }
+.dl-btn .play { transition: all .5s ease; transition-delay: 300ms; }
+.dl-btn:hover svg { transform: scale(2.6) translate(170%); }
+.dl-btn .now {
+  position: absolute; left: 0;
+  transform: translateX(-100%);
+  transition: all .5s ease; z-index: 2;
+}
+.dl-btn:hover .now { transform: translateX(14px); transition-delay: 300ms; }
+.dl-btn:hover .play { transform: translateX(200%); transition-delay: 300ms; }
+
+/* 证件信息卡内的四按钮：统一 flex 基准，等宽等距自适应 */
+.idcard-layout > .card > .action-bar { gap: var(--space-2); }
+.idcard-layout > .card > .action-bar > button {
+  flex: 1 1 0; min-width: 0; width: auto; max-width: none;
+  min-height: 48px; padding: 10px 8px; white-space: nowrap;
+}
+/* 头像行控件需可收缩，否则窄视口下缩略图会把卡片撑破 */
+.idcard-layout .param-control { min-width: 0; }
+/* 容器装不下 5 个字时改 2×2，四按钮始终保持一致尺寸与间距 */
+@media (max-width: 460px), (min-width: 821px) and (max-width: 1220px) {
+  .idcard-layout > .card > .action-bar { flex-wrap: wrap; }
+  .idcard-layout > .card > .action-bar > button { flex: 1 1 calc(50% - var(--space-1)); }
+}
+/* 该区间控件区过窄，默认头像行标签上移，让 6 个缩略图整行排开 */
+@media (min-width: 821px) and (max-width: 1220px) {
+  .idcard-layout .param-row:has(.avatar-presets) { flex-direction: column; align-items: stretch; }
+  .idcard-layout .param-row:has(.avatar-presets) .param-label { width: auto; flex: 0 0 auto; }
+}
+
+/* 最近 30 天证件号变更记录 */
+.id-log-card { display: flex; flex-direction: column; }
+.id-log {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 208px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px;
+}
+.id-log-item {
+  flex: none;
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #E4F0F9 0%, #D5E7F3 45%, #C8DFD3 100%);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-sm); padding: 6px 8px 6px 10px;
+}
+.id-log-no {
+  flex: 1 1 auto; min-width: 0;
+  font-family: "Courier New", monospace; font-size: var(--fs-sm); font-weight: 700;
+  letter-spacing: 1px; word-break: break-all;
+  color: #1F3A4D;
+}
+.id-log-copy {
+  flex: none; min-width: 56px;
+  font-family: var(--font); font-size: var(--fs-xs); font-weight: 800; letter-spacing: .5px;
+  line-height: 1; text-align: center; white-space: nowrap;
+  padding: 5px 10px;
+  color: var(--primary-500); background: var(--surface);
+  border: var(--bw) solid var(--line); border-radius: var(--r-pill);
+  box-shadow: 2px 2px 0 var(--shadow);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+              background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.id-log-copy:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shadow); }
+.id-log-copy:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--shadow); }
+.id-log-copy.is-copied { color: #FFFFFF; background: var(--success); }
+[data-theme="dark"] .id-log-item { background: linear-gradient(135deg, #2B3B4B 0%, #253442 45%, #213A31 100%); }
+[data-theme="dark"] .id-log-no { color: #E9EFF4; }
+.id-log-empty {
+  color: var(--text-muted); font-size: var(--fs-sm); font-weight: 700; text-align: center;
+  padding: var(--space-5) var(--space-4);
+  border: var(--bw) dashed var(--line); border-radius: var(--r-sm);
+}
+.id-log::-webkit-scrollbar { width: 8px; }
+.id-log::-webkit-scrollbar-track { background: var(--surface-2); border-radius: var(--r-pill); }
+.id-log::-webkit-scrollbar-thumb { background: var(--primary-200); border: var(--bw) solid var(--line); border-radius: var(--r-pill); }
 .idcard-left > .action-bar {
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -687,9 +857,13 @@ input[type="range"] {
 .id-no-box .id-no { background: var(--surface); border: var(--bw) solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; flex: 1; min-width: 0; word-break: break-all; }
 .chk-row { display: flex; align-items: center; gap: 8px; margin-top: var(--space-3); font-size: var(--fs-sm); font-weight: 800; }
 
-.avatar-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.avatar-presets {
+  display: flex; flex-wrap: nowrap; gap: 8px;
+  overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 2px;
+}
 .av-thumb {
-  width: 46px; height: 56px; padding: 0; border: var(--bw) solid var(--line); border-radius: 10px;
+  flex: 1 1 0; min-width: 30px; width: auto; height: auto; aspect-ratio: 46 / 56;
+  padding: 0; border: var(--bw) solid var(--line); border-radius: 10px;
   background: var(--surface); box-shadow: var(--sh-1); overflow: hidden; cursor: pointer; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .av-thumb:hover { transform: translate(-2px, -2px); box-shadow: var(--sh-2); }
