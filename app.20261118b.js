@@ -1703,19 +1703,27 @@
     });
   }
 
-  /* 视频回溯：内嵌独立回放服务（7788 端口）。主机名跟随当前页面，局域网访问同样可用 */
+  /* 视频回溯：局域网优先连本地 7788（走本机浏览器内核，快且不用上传）；
+     公网域名下本地端口不可达（混合内容拦截），自动改用云端已发布实例。 */
   const RECALL_PORT = 7788;
-  function recallBase() {
-    const host = location.hostname || '127.0.0.1';
-    return 'http://' + host + ':' + RECALL_PORT + '/';
+  const RECALL_CLOUD_ORIGIN = 'https://wbapp-gsrkfxwounmdtjvf4lbowi.app.workbuddy.host/';
+  const RECALL_CLOUD = RECALL_CLOUD_ORIGIN + '?sharecode=XBHWJEANKF';
+  function recallLocalUrl() {
+    return 'http://' + (location.hostname || '127.0.0.1') + ':' + RECALL_PORT + '/';
+  }
+  function recallIsLan() {
+    const h = location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h === '::1'
+      || /^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+      || /\.(local|lan)$/i.test(h);
   }
   function renderRecall(root) {
-    const url = recallBase();
+    const lan = recallIsLan();
     root.innerHTML = `
       <div class="recall-wrap">
         <div class="recall-bar">
           <span class="recall-state" id="recallState"><i class="recall-dot"></i>正在检测服务…</span>
-          <code class="recall-url">${url}</code>
+          <code class="recall-url" id="recallUrl"></code>
           <span class="recall-ops">
             <button class="ghost-btn recall-mini" id="recallReload">刷新</button>
             <button class="ghost-btn recall-mini" id="recallOpen">新窗口打开</button>
@@ -1724,46 +1732,68 @@
         <iframe class="recall-frame" id="recallFrame" title="视频回溯" hidden></iframe>
         <div class="recall-off" id="recallOff" hidden>
           <div class="recall-off-ico">${svg('recall', 34)}</div>
-          <h3>视频回溯服务未启动</h3>
-          <p>工坊本身是纯静态页面，视频回溯跑在独立的本地服务上，需要它在 <b>${RECALL_PORT}</b> 端口运行。</p>
-          <p class="recall-off-hint">到服务所在目录执行 <code>node server.js</code> 启动后，点下方按钮重新检测。</p>
+          <h3 id="recallOffTitle">视频回溯服务未启动</h3>
+          <p id="recallOffDesc">工坊本身是纯静态页面，视频回溯跑在独立的服务上。局域网环境会在 <b>${RECALL_PORT}</b> 端口找它，未启动时自动改用云端实例。</p>
+          <p class="recall-off-hint" id="recallOffHint">到服务所在目录执行 <code>node server.js</code> 启动后，点下方按钮重新检测。</p>
           <button class="btn-primary" id="recallRetry">重新检测</button>
         </div>
       </div>`;
 
-    const frame = $('#recallFrame'), off = $('#recallOff'), state = $('#recallState');
+    const frame = $('#recallFrame'), off = $('#recallOff'), state = $('#recallState'), chip = $('#recallUrl');
+    let curSrc = '';
+
     function paint(ok, text) {
       state.className = 'recall-state ' + (ok ? 'is-on' : 'is-off');
       state.innerHTML = '<i class="recall-dot"></i>' + text;
     }
-    function online(force) {
-      paint(true, '服务在线');
+    function mount(target, force) {
+      curSrc = target === 'cloud' ? RECALL_CLOUD : recallLocalUrl();
+      chip.textContent = target === 'cloud' ? RECALL_CLOUD_ORIGIN : curSrc;
+      chip.title = chip.textContent;
       off.hidden = true;
       frame.hidden = false;
-      if (force || frame.dataset.src !== url) {
-        frame.dataset.src = url;
+      if (force || frame.dataset.src !== curSrc) {
+        frame.dataset.src = curSrc;
         frame.src = 'about:blank';
-        setTimeout(() => { frame.src = url; }, 30);
+        setTimeout(() => { frame.src = curSrc; }, 30);
       }
     }
-    function offline() {
-      paint(false, '服务离线');
+    // 云端实例：先挂载再探活（探活只判可达，不阻塞首屏）
+    function useCloud(force) {
+      mount('cloud', force);
+      paint(true, lan ? '本地未启动 · 已用云端' : '云端服务就绪');
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      fetch(RECALL_CLOUD, { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
+        .then(() => clearTimeout(timer))
+        .catch(() => { clearTimeout(timer); offline('cloud'); });
+    }
+    function offline(kind) {
+      const isCloud = kind === 'cloud';
+      paint(false, isCloud ? '云端连接失败' : '服务离线');
       frame.hidden = true;
       off.hidden = false;
+      $('#recallOffTitle').textContent = isCloud ? '云端实例暂时不可达' : '视频回溯服务未启动';
+      $('#recallOffDesc').innerHTML = isCloud
+        ? '云端实例可能正在唤醒或网络异常。稍等片刻点下方按钮重试；也可以点右上角「新窗口打开」直接访问。'
+        : `工坊本身是纯静态页面，视频回溯跑在独立的服务上。局域网环境会在 <b>${RECALL_PORT}</b> 端口找它，未启动时自动改用云端实例。`;
+      $('#recallOffHint').hidden = isCloud;
     }
     function probe(force) {
-      paint(false, '正在检测服务…');
+      // 公网域名下无法访问用户本机的 7788（https 页面禁止 http 混合内容），直接走云端
+      if (!lan) { useCloud(force); return; }
+      paint(false, '正在检测本地服务…');
       if (!frame.dataset.src) { off.hidden = true; frame.hidden = true; }
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 4000);
-      fetch(url + 'api/health', { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
-        .then(() => { clearTimeout(timer); online(force); })
-        .catch(() => { clearTimeout(timer); offline(); });
+      fetch(recallLocalUrl() + 'api/health', { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
+        .then(() => { clearTimeout(timer); paint(true, '本地服务就绪'); mount('local', force); })
+        .catch(() => { clearTimeout(timer); useCloud(force); });
     }
 
     $('#recallReload').addEventListener('click', () => probe(true));
     $('#recallRetry').addEventListener('click', () => probe(true));
-    $('#recallOpen').addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer'));
+    $('#recallOpen').addEventListener('click', () => window.open(curSrc || RECALL_CLOUD, '_blank', 'noopener,noreferrer'));
     probe(false);
   }
 
